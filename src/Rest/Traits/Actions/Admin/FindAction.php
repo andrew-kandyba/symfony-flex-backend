@@ -8,9 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Rest\Traits\Actions\Admin;
 
-use App\Annotation\RestApiDoc;
 use App\Rest\Traits\Methods\FindMethod;
-use LogicException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,11 +23,10 @@ use Throwable;
  * @see \App\Rest\Traits\Methods\FindMethod for detailed documents.
  *
  * @package App\Rest\Traits\Actions\Admin
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait FindAction
 {
-    // Traits
     use FindMethod;
 
     /**
@@ -40,16 +37,7 @@ trait FindAction
      *
      * @Security("is_granted('ROLE_ADMIN')")
      *
-     * @RestApiDoc()
-     *
-     * @param Request $request
-     *
-     * @return Response
-     *
-     * @throws LogicException
      * @throws Throwable
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
      */
     public function findAction(Request $request): Response
     {

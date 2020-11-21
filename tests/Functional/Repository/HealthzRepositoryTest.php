@@ -19,7 +19,7 @@ use Throwable;
  * Class UserRepositoryTest
  *
  * @package App\Tests\Functional\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class HealthzRepositoryTest extends KernelTestCase
 {
@@ -33,9 +33,25 @@ class HealthzRepositoryTest extends KernelTestCase
      */
     public static function tearDownAfterClass(): void
     {
-        parent::tearDownAfterClass();
+        static::bootKernel();
 
         PhpUnitUtil::loadFixtures(static::$kernel);
+
+        static::$kernel->shutdown();
+
+        parent::tearDownAfterClass();
+    }
+
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        $this->repository = static::$container->get(HealthzRepository::class);
     }
 
     /**
@@ -77,17 +93,5 @@ class HealthzRepositoryTest extends KernelTestCase
     public function testThatCleanupMethodClearsDatabaseReturnsExpected(): void
     {
         static::assertSame(0, $this->repository->cleanup());
-    }
-
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->repository = static::$container->get(HealthzRepository::class);
     }
 }

@@ -16,17 +16,18 @@ use Symfony\Component\Console\Exception\LogicException;
  * Class ApiKeyManagementCommand
  *
  * @package App\Command\ApiKey
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKeyManagementCommand extends Command
 {
-    // Traits
     use ExecuteMultipleCommandTrait;
 
     /**
      * ManagementCommand constructor.
      *
      * @throws LogicException
+     *
+     * @psalm-suppress InvalidScalarArgument
      */
     public function __construct()
     {
@@ -34,7 +35,6 @@ class ApiKeyManagementCommand extends Command
 
         $this->setDescription('Console command to manage API keys');
 
-        /** @psalm-suppress InvalidScalarArgument */
         $this->setChoices([
             'api-key:list' => 'List API keys',
             'api-key:create' => 'Create API key',

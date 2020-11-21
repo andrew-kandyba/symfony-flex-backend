@@ -8,22 +8,22 @@ declare(strict_types = 1);
 
 namespace App\DTO\Traits;
 
+use App\Entity\Interfaces\UserGroupAwareInterface;
 use App\Entity\UserGroup as UserGroupEntity;
-use App\Entity\UserGroupAwareInterface;
+use function array_map;
 
 /**
  * Trait PatchUserGroups
  *
  * @package App\DTO\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait PatchUserGroups
 {
     /**
      * Method to patch entity user groups.
      *
-     * @param UserGroupAwareInterface $entity
-     * @param UserGroupEntity[]       $value
+     * @param array<int, UserGroupEntity> $value
      */
     protected function updateUserGroups(UserGroupAwareInterface $entity, array $value): void
     {

@@ -8,6 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Rest;
 
+use App\Rest\Interfaces\SearchTermInterface;
 use Closure;
 use function array_filter;
 use function array_map;
@@ -17,7 +18,6 @@ use function array_values;
 use function count;
 use function explode;
 use function is_array;
-use function mb_strlen;
 use function strpos;
 use function trim;
 
@@ -25,25 +25,17 @@ use function trim;
  * Class SearchTerm
  *
  * @package App\Rest
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 final class SearchTerm implements SearchTermInterface
 {
     /**
-     * Static method to get search term criteria for specified columns and search terms with specified operand and mode.
-     *
-     * @param string|string[] $column  Search column(s), could be a string or an array of strings.
-     * @param string|string[] $search  Search term(s), could be a string or an array of strings.
-     * @param string|null     $operand Used operand with multiple search terms. See OPERAND_* constants. Defaults
-     *                                 to self::OPERAND_OR
-     * @param int|null        $mode    Used mode on LIKE search. See MODE_* constants. Defaults to self::MODE_FULL
-     *
-     * @return mixed[]|null
+     * {@inheritdoc}
      */
     public static function getCriteria($column, $search, ?string $operand = null, ?int $mode = null): ?array
     {
-        $operand = $operand ?? self::OPERAND_OR;
-        $mode = $mode ?? self::MODE_FULL;
+        $operand ??= self::OPERAND_OR;
+        $mode ??= self::MODE_FULL;
 
         $columns = self::getColumns($column);
         $searchTerms = self::getSearchTerms($search);
@@ -59,25 +51,27 @@ final class SearchTerm implements SearchTermInterface
     /**
      * Helper method to create used criteria array with given columns and search terms.
      *
-     * @param string[] $columns
-     * @param string[] $searchTerms
-     * @param string   $operand
-     * @param int      $mode
+     * @param array<int, string> $columns
+     * @param array<int, string> $searchTerms
      *
-     * @return mixed[]|null
+     * @return array<string, array<string, array>>|null
      */
     private static function createCriteria(array $columns, array $searchTerms, string $operand, int $mode): ?array
     {
         $iteratorTerm = self::getTermIterator($columns, $mode);
 
-        // Get criteria
+        /**
+         * Get criteria
+         *
+         * @var array<string, array<string, array>>
+         */
         $criteria = array_filter(array_map($iteratorTerm, $searchTerms));
 
         // Initialize output
         $output = null;
 
         // We have some generated criteria
-        if (count($criteria)) {
+        if (count($criteria) > 0) {
             // Create used criteria array
             $output = [
                 'and' => [
@@ -92,58 +86,34 @@ final class SearchTerm implements SearchTermInterface
     /**
      * Method to get term iterator closure.
      *
-     * @param string[] $columns
-     * @param int      $mode
-     *
-     * @return Closure
+     * @param array<int, string> $columns
      */
     private static function getTermIterator(array $columns, int $mode): Closure
     {
-        /**
-         * Lambda function to process each search term to specified search columns.
-         *
-         * @param string $term
-         *
-         * @return array
-         */
-        return static function (string $term) use ($columns, $mode): ?array {
-            return count($columns) ? array_map(self::getColumnIterator($term, $mode), $columns) : null;
-        };
+        return static fn (string $term): ?array => count($columns) > 0
+            ? array_map(self::getColumnIterator($term, $mode), $columns)
+            : null;
     }
 
     /**
      * Method to get column iterator closure.
-     *
-     * @param string $term
-     * @param int    $mode
-     *
-     * @return Closure
      */
     private static function getColumnIterator(string $term, int $mode): Closure
     {
-        /**
+        /*
          * Lambda function to create actual criteria for specified column + term + mode combo.
          *
          * @param string $column
          *
-         * @return string[]
+         * @return array<int, string>
          */
-        return static function (string $column) use ($term, $mode): array {
-            if (strpos($column, '.') === false) {
-                $column = 'entity.' . $column;
-            }
-
-            return [$column, 'like', self::getTerm($mode, $term)];
-        };
+        return static fn (string $column): array => [
+            strpos($column, '.') === false ? 'entity.' . $column : $column, 'like', self::getTerm($mode, $term),
+        ];
     }
 
     /**
      * Method to get search term clause for 'LIKE' query for specified mode.
-     *
-     * @param int    $mode
-     * @param string $term
-     *
-     * @return string
      */
     private static function getTerm(int $mode, string $term): string
     {
@@ -164,40 +134,35 @@ final class SearchTerm implements SearchTermInterface
     }
 
     /**
-     * @param string|string[] $column  Search column(s), could be a string or an array of strings.
+     * @param string|array<int, string> $column search column(s), could be a
+     *                                          string or an array of strings
      *
-     * @return string[]
+     * @return array<int, string>
      */
     private static function getColumns($column): array
     {
-        $filter = static function (string $value): bool {
-            return mb_strlen(trim($value)) > 0;
-        };
-
         // Normalize column and search parameters
         return array_filter(
             array_map('trim', (is_array($column) ? $column : (array)$column)),
-            $filter
+            static fn (string $value): bool => trim($value) !== ''
         );
     }
 
     /**
      * Method to get search terms.
      *
-     * @param string|string[]|null $search Search term(s), could be a string or an array of strings.
+     * @param string|array<int, string>|null $search search term(s), could be
+     *                                               a string or an array of
+     *                                               strings
      *
-     * @return string[]
+     * @return array<int, string>
      */
     private static function getSearchTerms($search): array
     {
-        $filter = static function (string $value): bool {
-            return mb_strlen(trim($value)) > 0;
-        };
-
         return array_unique(
             array_filter(
                 array_map('trim', (is_array($search) ? $search : explode(' ', (string)$search))),
-                $filter
+                static fn (string $value): bool => trim($value) !== ''
             )
         );
     }

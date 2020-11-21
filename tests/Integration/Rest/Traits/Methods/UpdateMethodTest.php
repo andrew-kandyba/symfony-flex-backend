@@ -9,8 +9,8 @@ declare(strict_types = 1);
 namespace App\Tests\Integration\Rest\Traits\Methods;
 
 use App\DTO\RestDtoInterface;
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Tests\Integration\Rest\Traits\Methods\src\PatchMethodTestClass;
 use App\Tests\Integration\Rest\Traits\Methods\src\UpdateMethodInvalidTestClass;
 use App\Tests\Integration\Rest\Traits\Methods\src\UpdateMethodTestClass;
@@ -30,26 +30,26 @@ use Throwable;
  * Class UpdateMethodTest
  *
  * @package App\Tests\Integration\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UpdateMethodTest extends KernelTestCase
 {
     /**
      * @throws Throwable
      */
-    public function testThatTraitThrowsAnException():void
+    public function testThatTraitThrowsAnException(): void
     {
         $this->expectException(LogicException::class);
 
-        /** @codingStandardsIgnoreStart */
-        $this->expectExceptionMessageRegExp(
+        /* @codingStandardsIgnoreStart */
+        $this->expectExceptionMessageMatches(
             '/You cannot use (.*) controller class with REST traits if that does not implement (.*)ControllerInterface\'/'
         );
         /** @codingStandardsIgnoreEnd */
 
         /**
          * @var MockObject|UpdateMethodInvalidTestClass $testClass
-         * @var MockObject|RestDtoInterface             $restDtoInterface
+         * @var MockObject|RestDtoInterface $restDtoInterface
          */
         $testClass = $this->getMockForAbstractClass(UpdateMethodInvalidTestClass::class);
         $restDtoInterface = $this->getMockBuilder(RestDtoInterface::class)->getMock();
@@ -64,9 +64,9 @@ class UpdateMethodTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod
      *
-     * @param string $httpMethod
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\UpdateMethod` throws an exception with `$httpMethod` HTTP method.
      */
     public function testThatTraitThrowsAnExceptionWithWrongHttpMethod(string $httpMethod): void
     {
@@ -76,7 +76,7 @@ class UpdateMethodTest extends KernelTestCase
         $responseHandler = $this->createMock(ResponseHandlerInterface::class);
 
         /**
-         * @var MockObject|RestDtoInterface     $restDtoInterface
+         * @var MockObject|RestDtoInterface $restDtoInterface
          * @var MockObject|PatchMethodTestClass $testClass
          */
         $restDtoInterface = $this->getMockBuilder(RestDtoInterface::class)->getMock();
@@ -102,8 +102,8 @@ class UpdateMethodTest extends KernelTestCase
         $responseHandler = $this->createMock(ResponseHandlerInterface::class);
 
         /**
-         * @var MockObject|RestDtoInterface      $restDtoInterface
-         * @var MockObject|Request               $request
+         * @var MockObject|RestDtoInterface $restDtoInterface
+         * @var MockObject|Request $request
          * @var MockObject|UpdateMethodTestClass $testClass
          */
         $restDtoInterface = $this->getMockBuilder(RestDtoInterface::class)->getMock();
@@ -123,9 +123,6 @@ class UpdateMethodTest extends KernelTestCase
         $testClass->updateMethod($request, $restDtoInterface, $uuid);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod(): Generator
     {
         yield ['HEAD'];
@@ -138,9 +135,6 @@ class UpdateMethodTest extends KernelTestCase
         yield ['foobar'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitHandlesException(): Generator
     {
         yield [new HttpException(400), 0];

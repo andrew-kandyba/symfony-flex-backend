@@ -9,11 +9,11 @@ declare(strict_types = 1);
 namespace App\Command\ApiKey;
 
 use App\Entity\ApiKey as ApiKeyEntity;
-use App\Entity\EntityInterface;
 use App\Resource\ApiKeyResource;
 use App\Security\RolesService;
 use Closure;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 use function array_map;
 use function implode;
 use function sprintf;
@@ -22,25 +22,15 @@ use function sprintf;
  * Class ApiKeyHelper
  *
  * @package App\Command\ApiKey
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKeyHelper
 {
-    /**
-     * @var ApiKeyResource
-     */
-    private $apiKeyResource;
-
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
+    private ApiKeyResource $apiKeyResource;
+    private RolesService $rolesService;
 
     /**
      * ApiKeyHelper constructor.
-     *
-     * @param ApiKeyResource $apiKeyResource
-     * @param RolesService   $rolesService
      */
     public function __construct(ApiKeyResource $apiKeyResource, RolesService $rolesService)
     {
@@ -49,17 +39,15 @@ class ApiKeyHelper
     }
 
     /**
-     * Method to get API key entity. Also note that this may return a null in cases that user do not want to make any
-     * changes to API keys.
+     * Method to get API key entity. Also note that this may return a null in
+     * cases that user do not want to make any changes to API keys.
      *
-     * @param SymfonyStyle $io
-     * @param string       $question
-     *
-     * @return ApiKeyEntity|null
+     * @throws Throwable
      */
     public function getApiKey(SymfonyStyle $io, string $question): ?ApiKeyEntity
     {
         $apiKeyFound = false;
+        $apiKeyEntity = null;
 
         while ($apiKeyFound !== true) {
             /** @var ApiKeyEntity|null $apiKeyEntity */
@@ -83,16 +71,14 @@ class ApiKeyHelper
     }
 
     /**
-     * Helper method to get "normalized" message for API key. This is used on following cases:
+     * Helper method to get "normalized" message for API key. This is used on
+     * following cases:
      *  - User changes API key token
      *  - User creates new API key
      *  - User modifies API key
      *  - User removes API key
      *
-     * @param string       $message
-     * @param ApiKeyEntity $apiKey
-     *
-     * @return mixed[]
+     * @return array<int, string>
      */
     public function getApiKeyMessage(string $message, ApiKeyEntity $apiKey): array
     {
@@ -109,33 +95,29 @@ class ApiKeyHelper
     /**
      * Method to list ApiKeys where user can select desired one.
      *
-     * @param SymfonyStyle $io
-     * @param string       $question
-     *
-     * @return ApiKeyEntity|EntityInterface|null
+     * @throws Throwable
      */
-    private function getApiKeyEntity(SymfonyStyle $io, string $question): ?EntityInterface
+    private function getApiKeyEntity(SymfonyStyle $io, string $question): ?ApiKeyEntity
     {
         $choices = [];
         $iterator = $this->getApiKeyIterator($choices);
 
-        array_map($iterator, $this->apiKeyResource->find([], ['token' => 'ASC']));
+        array_map($iterator, $this->apiKeyResource->find(null, ['token' => 'ASC']));
 
         $choices['Exit'] = 'Exit command';
 
-        return $this->apiKeyResource->findOne($io->choice($question, $choices));
+        return $this->apiKeyResource->findOne((string)$io->choice($question, $choices));
     }
 
     /**
-     * Method to return ApiKeyIterator closure. This will format ApiKey entities for choice list.
+     * Method to return ApiKeyIterator closure. This will format ApiKey
+     * entities for choice list.
      *
      * @param string[] $choices
-     *
-     * @return Closure
      */
     private function getApiKeyIterator(array &$choices): Closure
     {
-        /**
+        /*
          * Lambda function create api key choices
          *
          * @param ApiKeyEntity $apiKey

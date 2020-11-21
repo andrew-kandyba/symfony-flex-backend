@@ -2,22 +2,28 @@
 <psalm
     totallyTyped="false"
     allowPhpStormGenerics="true"
+    resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
-    xsi:schemaLocation="https://getpsalm.org/schema/config file://./vendor-bin/psalm/vendor/vimeo/psalm/config.xsd"
+    xsi:schemaLocation="https://getpsalm.org/schema/config file://./tools/03_psalm/vendor/vimeo/psalm/config.xsd"
 >
     <projectFiles>
         <directory name="src/" />
 
         <ignoreFiles>
             <directory name="vendor" />
-            <directory name="src/Utils/Tests" />
-            <file name="src/Kernel.php" />
         </ignoreFiles>
     </projectFiles>
 
+    <plugins>
+        <pluginClass class="Psalm\SymfonyPsalmPlugin\Plugin" />
+    </plugins>
+
     <issueHandlers>
-        <PropertyNotSetInConstructor errorLevel="suppress" />
-        <InvalidStringClass errorLevel="suppress" />
+        <PropertyNotSetInConstructor>
+            <errorLevel type="suppress">
+                <referencedProperty name="App\Entity\UserGroup::$role" />
+            </errorLevel>
+        </PropertyNotSetInConstructor>
     </issueHandlers>
 </psalm>

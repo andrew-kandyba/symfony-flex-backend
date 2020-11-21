@@ -26,15 +26,24 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 class EnumLogLoginTypeTest extends KernelTestCase
 {
-    /**
-     * @var AbstractPlatform
-     */
-    private $platform;
+    private AbstractPlatform $platform;
+    private Type $type;
 
     /**
-     * @var Type
+     * @throws DBALException
      */
-    private $type;
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->platform = new MySqlPlatform();
+
+        Type::hasType('EnumLogLogin')
+            ? Type::overrideType('EnumLogLogin', EnumLogLoginType::class)
+            : Type::addType('EnumLogLogin', EnumLogLoginType::class);
+
+        $this->type = Type::getType('EnumLogLogin');
+    }
 
     public function testThatGetSQLDeclarationReturnsExpected(): void
     {
@@ -44,7 +53,7 @@ class EnumLogLoginTypeTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatConvertToDatabaseValueWorksWithProperValues
      *
-     * @param string $value
+     * @testdox Test that `convertToDatabaseValue` method returns `$value`.
      */
     public function testThatConvertToDatabaseValueWorksWithProperValues(string $value): void
     {
@@ -55,6 +64,8 @@ class EnumLogLoginTypeTest extends KernelTestCase
      * @dataProvider dataProviderTestThatConvertToDatabaseValueThrowsAnException
      *
      * @param mixed $value
+     *
+     * @testdox Test that `convertToDatabaseValue` method throws an exception with `$value` input.
      */
     public function testThatConvertToDatabaseValueThrowsAnException($value): void
     {
@@ -69,18 +80,12 @@ class EnumLogLoginTypeTest extends KernelTestCase
         static::assertTrue($this->type->requiresSQLCommentHint($this->platform));
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatConvertToDatabaseValueWorksWithProperValues(): Generator
     {
         yield ['failure'];
         yield ['success'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatConvertToDatabaseValueThrowsAnException(): Generator
     {
         yield [null];
@@ -89,35 +94,7 @@ class EnumLogLoginTypeTest extends KernelTestCase
         yield [''];
         yield [' '];
         yield ['foobar'];
+        yield [[]];
         yield [new stdClass()];
-    }
-
-    /**
-     * @throws DBALException
-     */
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        $this->platform = new MySqlPlatform();
-
-        if (Type::hasType('EnumLogLogin')) {
-            Type::overrideType('EnumLogLogin', EnumLogLoginType::class);
-        } else {
-            Type::addType('EnumLogLogin', EnumLogLoginType::class);
-        }
-
-        $this->type = Type::getType('EnumLogLogin');
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->type, $this->platform);
-
-        gc_collect_cycles();
     }
 }

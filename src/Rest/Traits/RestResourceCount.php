@@ -14,7 +14,7 @@ namespace App\Rest\Traits;
  * @SuppressWarnings("unused")
  *
  * @package App\Rest\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait RestResourceCount
 {
@@ -33,7 +33,6 @@ trait RestResourceCount
      *
      * @param mixed[] $criteria
      * @param mixed[] $search
-     * @param int     $count
      */
     public function afterCount(array &$criteria, array &$search, int &$count): void
     {

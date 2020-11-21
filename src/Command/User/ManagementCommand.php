@@ -10,22 +10,24 @@ namespace App\Command\User;
 
 use App\Command\Traits\ExecuteMultipleCommandTrait;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\LogicException;
 
 /**
  * Class ManagementCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ManagementCommand extends Command
 {
-    // Traits
     use ExecuteMultipleCommandTrait;
 
     /**
      * ManagementCommand constructor.
      *
-     * @throws \Symfony\Component\Console\Exception\LogicException
+     * @throws LogicException
+     *
+     * @psalm-suppress InvalidScalarArgument
      */
     public function __construct()
     {
@@ -33,7 +35,6 @@ class ManagementCommand extends Command
 
         $this->setDescription('Console command to manage users and user groups');
 
-        /** @psalm-suppress InvalidScalarArgument */
         $this->setChoices([
             'user:list' => 'List users',
             'user:list-groups' => 'List user groups',

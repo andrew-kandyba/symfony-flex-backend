@@ -15,9 +15,9 @@ use App\Tests\Integration\DTO\DtoTestCase;
  * Class UserGroupPatchTest
  *
  * @package App\Tests\Integration\DTO\UserGroup
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserGroupPatchTest extends DtoTestCase
 {
-    protected $dtoClass = UserGroupPatch::class;
+    protected string $dtoClass = UserGroupPatch::class;
 }

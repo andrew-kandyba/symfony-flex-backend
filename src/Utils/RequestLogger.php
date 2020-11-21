@@ -11,9 +11,9 @@ namespace App\Utils;
 use App\Entity\ApiKey;
 use App\Entity\LogRequest;
 use App\Entity\User;
-use App\Helpers\LoggerAwareTrait;
 use App\Resource\LogRequestResource;
-use LogicException;
+use App\Utils\Interfaces\RequestLoggerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -22,126 +22,70 @@ use Throwable;
  * Class RequestLogger
  *
  * @package App\Services
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RequestLogger implements RequestLoggerInterface
 {
-    // Traits
-    use LoggerAwareTrait;
+    private LogRequestResource $resource;
+    private LoggerInterface $logger;
+    private ?Response $response = null;
+    private ?Request $request = null;
+    private ?User $user = null;
+    private ?ApiKey $apiKey = null;
+    private bool $masterRequest = false;
 
     /**
-     * @var Response|null
+     * @var array<int, string>
      */
-    private $response;
-
-    /**
-     * @var Request|null
-     */
-    private $request;
-
-    /**
-     * @var LogRequestResource
-     */
-    private $resource;
-
-    /**
-     * @var User|null
-     */
-    private $user;
-
-    /**
-     * @var ApiKey|null
-     */
-    private $apiKey;
-
-    /**
-     * @var bool
-     */
-    private $masterRequest;
+    private array $sensitiveProperties;
 
     /**
      * ResponseLogger constructor.
      *
-     * @param LogRequestResource $resource
+     * @param array<int, string> $sensitiveProperties
      */
-    public function __construct(LogRequestResource $resource)
+    public function __construct(LogRequestResource $resource, LoggerInterface $logger, array $sensitiveProperties)
     {
         $this->resource = $resource;
+        $this->logger = $logger;
+        $this->sensitiveProperties = $sensitiveProperties;
     }
 
-    /**
-     * Setter for response object.
-     *
-     * @param Response $response
-     *
-     * @return RequestLoggerInterface
-     */
-    public function setResponse(Response $response): RequestLoggerInterface
+    public function setResponse(Response $response): self
     {
         $this->response = $response;
 
         return $this;
     }
 
-    /**
-     * Setter for request object.
-     *
-     * @param Request $request
-     *
-     * @return RequestLoggerInterface
-     */
-    public function setRequest(Request $request): RequestLoggerInterface
+    public function setRequest(Request $request): self
     {
         $this->request = $request;
 
         return $this;
     }
 
-    /**
-     * Setter method for current user.
-     *
-     * @param User|null $user
-     *
-     * @return RequestLoggerInterface
-     */
-    public function setUser(?User $user = null): RequestLoggerInterface
+    public function setUser(?User $user = null): self
     {
         $this->user = $user;
 
         return $this;
     }
 
-    /**
-     * Setter method for current api key
-     *
-     * @param ApiKey|null $apiKey
-     *
-     * @return RequestLoggerInterface
-     */
-    public function setApiKey(?ApiKey $apiKey = null): RequestLoggerInterface
+    public function setApiKey(?ApiKey $apiKey = null): self
     {
         $this->apiKey = $apiKey;
 
         return $this;
     }
 
-    /**
-     * Setter method for 'master request' info.
-     *
-     * @param bool $masterRequest
-     *
-     * @return RequestLoggerInterface
-     */
-    public function setMasterRequest(bool $masterRequest): RequestLoggerInterface
+    public function setMasterRequest(bool $masterRequest): self
     {
         $this->masterRequest = $masterRequest;
 
         return $this;
     }
 
-    /**
-     * Method to handle current response and log it to database.
-     */
     public function handle(): void
     {
         // Just check that we have all that we need
@@ -157,17 +101,22 @@ class RequestLogger implements RequestLoggerInterface
     }
 
     /**
-     * Store request log and  clean history
+     * Store request log to database.
      *
-     * @throws LogicException
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws Throwable
      */
     private function createRequestLogEntry(): void
     {
         // Create new request log entity
-        $entity = new LogRequest($this->request, $this->response, $this->user, $this->apiKey, $this->masterRequest);
+        $entity = new LogRequest(
+            $this->sensitiveProperties,
+            $this->request,
+            $this->response,
+            $this->user,
+            $this->apiKey,
+            $this->masterRequest
+        );
 
-        $this->resource->save($entity, true);
+        $this->resource->save($entity, true, true);
     }
 }

@@ -16,29 +16,14 @@ use App\Resource\RoleResource;
  * Class RoleRepositoryTest
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleRepositoryTest extends RepositoryTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = Role::class;
-
-    /**
-     * @var string
-     */
-    protected $repositoryName = RoleRepository::class;
-
-    /**
-     * @var string
-     */
-    protected $resourceName = RoleResource::class;
-
-    /**
-     * @var array
-     */
-    protected $associations = [
+    protected string $entityName = Role::class;
+    protected string $repositoryName = RoleRepository::class;
+    protected string $resourceName = RoleResource::class;
+    protected array $associations = [
         'userGroups',
         'createdBy',
         'updatedBy',

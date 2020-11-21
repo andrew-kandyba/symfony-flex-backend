@@ -30,15 +30,24 @@ use Throwable;
  */
 class UTCDateTimeTypeTest extends KernelTestCase
 {
-    /**
-     * @var AbstractPlatform
-     */
-    private $platform;
+    private AbstractPlatform $platform;
+    private Type $type;
 
     /**
-     * @var Type
+     * @throws DBALException
      */
-    private $type;
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->platform = new MySqlPlatform();
+
+        Type::hasType('datetime')
+            ? Type::overrideType('datetime', UTCDateTimeType::class)
+            : Type::addType('datetime', UTCDateTimeType::class);
+
+        $this->type = Type::getType('datetime');
+    }
 
     /**
      * @throws Throwable
@@ -55,8 +64,6 @@ class UTCDateTimeTypeTest extends KernelTestCase
         $actual = $this->type->convertToDatabaseValue($dateInput, $this->platform);
 
         static::assertSame($expected, $actual);
-
-        unset($actual, $expected, $dateExpected, $dateInput);
     }
 
     /**
@@ -77,22 +84,21 @@ class UTCDateTimeTypeTest extends KernelTestCase
 
         static::assertInstanceOf(DateTimeZone::class, $property);
         static::assertSame('UTC', $property->getName());
-
-        unset($dateInput);
     }
 
     /**
      * @dataProvider dataProviderTestDateTimeConvertsToPHPValue
      *
-     * @param string           $expected
      * @param string|DateTime $value
+     *
+     * @testdox Test that `convertToPHPValue` method converts `$value` to `$expected`.
      */
     public function testDateTimeConvertsToPHPValue(string $expected, $value): void
     {
         $date = $this->type->convertToPHPValue($value, $this->platform);
 
         static::assertInstanceOf('DateTime', $date);
-        static::assertEquals($expected, $date->format('Y-m-d H:i:s'));
+        static::assertSame($expected, $date->format('Y-m-d H:i:s'));
     }
 
     /**
@@ -126,8 +132,6 @@ class UTCDateTimeTypeTest extends KernelTestCase
     }
 
     /**
-     * @return Generator
-     *
      * @throws Throwable
      */
     public function dataProviderTestDateTimeConvertsToPHPValue(): Generator
@@ -146,30 +150,5 @@ class UTCDateTimeTypeTest extends KernelTestCase
             '1981-04-07 10:00:00',
             new DateTime('1981-04-07 10:00:00', new DateTimeZone('UTC')),
         ];
-    }
-
-    /**
-     * @throws DBALException
-     */
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->platform = new MySqlPlatform();
-
-        if (Type::hasType('datetime')) {
-            Type::overrideType('datetime', UTCDateTimeType::class);
-        } else {
-            Type::addType('datetime', UTCDateTimeType::class);
-        }
-
-        $this->type = Type::getType('datetime');
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->type, $this->platform);
     }
 }

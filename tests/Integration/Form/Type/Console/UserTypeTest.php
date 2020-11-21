@@ -14,24 +14,41 @@ use App\Entity\UserGroup;
 use App\Form\DataTransformer\UserGroupTransformer;
 use App\Form\Type\Console\UserType;
 use App\Resource\UserGroupResource;
+use App\Service\Localization;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
-use function array_keys;
 use Throwable;
+use function array_keys;
 
 /**
  * Class UserTypeTest
  *
  * @package App\Tests\Integration\Form\Type\Console
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserTypeTest extends TypeTestCase
 {
     /**
      * @var MockObject|UserGroupResource
      */
-    private $mockUserGroupResource;
+    private MockObject $mockUserGroupResource;
+
+    /**
+     * @var MockObject|Localization
+     */
+    private MockObject $mockLocalization;
+
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        $this->mockUserGroupResource = $this->createMock(UserGroupResource::class);
+        $this->mockLocalization = $this->createMock(Localization::class);
+
+        parent::setUp();
+    }
 
     public function testSubmitValidData(): void
     {
@@ -39,8 +56,8 @@ class UserTypeTest extends TypeTestCase
         $roleEntity = new Role('ROLE_ADMIN');
 
         // Create new user group entity
-        $userGroupEntity = new UserGroup();
-        $userGroupEntity->setRole($roleEntity);
+        $userGroupEntity = (new UserGroup())
+            ->setRole($roleEntity);
 
         $this->mockUserGroupResource
             ->expects(static::once())
@@ -53,29 +70,63 @@ class UserTypeTest extends TypeTestCase
             ->with($userGroupEntity->getId())
             ->willReturn($userGroupEntity);
 
+        $this->mockLocalization
+            ->expects(static::once())
+            ->method('getLanguages')
+            ->willReturn(['en', 'fi']);
+
+        $this->mockLocalization
+            ->expects(static::once())
+            ->method('getLocales')
+            ->willReturn(['en', 'fi']);
+
+        $this->mockLocalization
+            ->expects(static::once())
+            ->method('getFormattedTimezones')
+            ->willReturn([
+                [
+                    'timezone' => 'Europe',
+                    'identifier' => 'Europe/Helsinki',
+                    'offset' => 'GMT+2:00',
+                    'value' => 'Europe/Helsinki',
+                ],
+                [
+                    'timezone' => 'Europe',
+                    'identifier' => 'Europe/Stockholm',
+                    'offset' => 'GMT+1:00',
+                    'value' => 'Europe/Stockholm',
+                ],
+            ]);
+
         // Create form
         $form = $this->factory->create(UserType::class);
 
         // Create new DTO object
-        $dto = new UserDto();
-        $dto->setUsername('username');
-        $dto->setFirstName('John');
-        $dto->setLastName('Doe');
-        $dto->setEmail('john.doe@test.com');
-        $dto->setPassword('password');
-        $dto->setUserGroups([$userGroupEntity]);
+        $dto = (new UserDto())
+            ->setUsername('username')
+            ->setFirstName('John')
+            ->setLastName('Doe')
+            ->setEmail('john.doe@test.com')
+            ->setPassword('password')
+            ->setLanguage('fi')
+            ->setLocale('fi')
+            ->setTimezone('Europe/Stockholm')
+            ->setUserGroups([$userGroupEntity]);
 
         // Specify used form data
         $formData = [
-            'username'      => 'username',
-            'firstName'     => 'John',
-            'lastName'      => 'Doe',
-            'email'         => 'john.doe@test.com',
-            'password'      => [
+            'username' => 'username',
+            'firstName' => 'John',
+            'lastName' => 'Doe',
+            'email' => 'john.doe@test.com',
+            'password' => [
                 'password1' => 'password',
                 'password2' => 'password',
             ],
-            'userGroups'    => [$userGroupEntity->getId()],
+            'language' => 'fi',
+            'locale' => 'fi',
+            'timezone' => 'Europe/Stockholm',
+            'userGroups' => [$userGroupEntity->getId()],
         ];
 
         // submit the data to the form directly
@@ -85,7 +136,15 @@ class UserTypeTest extends TypeTestCase
         static::assertTrue($form->isSynchronized());
 
         // Test that form data matches with the DTO mapping
-        static::assertEquals($dto, $form->getData());
+        static::assertSame($dto->getId(), $form->getData()->getId());
+        static::assertSame($dto->getUsername(), $form->getData()->getUsername());
+        static::assertSame($dto->getFirstName(), $form->getData()->getFirstName());
+        static::assertSame($dto->getLastName(), $form->getData()->getLastName());
+        static::assertSame($dto->getEmail(), $form->getData()->getEmail());
+        static::assertSame($dto->getLanguage(), $form->getData()->getLanguage());
+        static::assertSame($dto->getLocale(), $form->getData()->getLocale());
+        static::assertSame($dto->getTimezone(), $form->getData()->getTimezone());
+        static::assertSame($dto->getUserGroups(), $form->getData()->getUserGroups());
 
         // Check that form renders correctly
         $view = $form->createView();
@@ -94,40 +153,18 @@ class UserTypeTest extends TypeTestCase
         foreach (array_keys($formData) as $key) {
             static::assertArrayHasKey($key, $children);
         }
-
-        unset($view, $dto, $form, $userGroupEntity, $roleEntity);
     }
 
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        $this->mockUserGroupResource = $this->createMock(UserGroupResource::class);
-
-        parent::setUp();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->mockUserGroupResource);
-
-        gc_collect_cycles();
-    }
-
-    /**
-     * @return array
-     */
     protected function getExtensions(): array
     {
         parent::getExtensions();
 
         // create a type instance with the mocked dependencies
-        $type = new UserType($this->mockUserGroupResource, new UserGroupTransformer($this->mockUserGroupResource));
+        $type = new UserType(
+            $this->mockUserGroupResource,
+            new UserGroupTransformer($this->mockUserGroupResource),
+            $this->mockLocalization
+        );
 
         return [
             // register the type instances with the PreloadedExtension

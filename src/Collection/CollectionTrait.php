@@ -8,44 +8,40 @@ declare(strict_types = 1);
 
 namespace App\Collection;
 
+use CallbackFilterIterator;
 use Closure;
 use InvalidArgumentException;
-use Traversable;
-use function array_filter;
-use function count;
-use function iterator_to_array;
+use IteratorAggregate;
+use IteratorIterator;
+use Psr\Log\LoggerInterface;
+use Throwable;
+use function iterator_count;
 
 /**
  * Trait CollectionTrait
  *
  * @package App\Collection
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait CollectionTrait
 {
-    /**
-     * @var Traversable
-     */
-    private $items;
+    private IteratorAggregate $items;
+    private LoggerInterface $logger;
 
     /**
-     * @param string $className
-     *
-     * @return Closure
+     * Method to filter current collection.
      */
     abstract public function filter(string $className): Closure;
 
     /**
-     * @param string $className
+     * Method to process error message for current collection.
      *
      * @throws InvalidArgumentException
      */
     abstract public function error(string $className): void;
 
     /**
-     * Getter method for RestResource class.
-     *
-     * @param string $className
+     * Getter method for given class for current collection.
      *
      * @return mixed
      *
@@ -53,54 +49,55 @@ trait CollectionTrait
      */
     public function get(string $className)
     {
-        $filteredResources = $this->getFilteredItems($className);
+        $current = $this->getFilteredItem($className);
 
-        if (count($filteredResources) !== 1) {
+        if ($current === null) {
             $this->error($className);
         }
 
-        return $filteredResources[0];
+        return $current;
     }
 
     /**
-     * @return Traversable
-     * @psalm-return Traversable<array-key, mixed>
+     * Method to get all items from current collection.
      */
-    public function getAll(): Traversable
+    public function getAll(): IteratorAggregate
     {
         return $this->items;
     }
 
     /**
-     * Method to check if specified resource exists or not in this Collection.
-     *
-     * @param string|null $className
-     *
-     * @return bool
+     * Method to check if specified class exists or not in current collection.
      */
     public function has(?string $className = null): bool
     {
-        $output = false;
-
-        if ($className !== null) {
-            $output = count(array_filter(iterator_to_array($this->items), $this->filter($className))) === 1;
-        }
-
-        return $output;
+        return $this->getFilteredItem($className ?? '') !== null;
     }
 
     /**
-     * @param string $className
-     *
-     * @return array
+     * Count elements of an object.
      */
-    private function getFilteredItems(string $className): array
+    public function count(): int
     {
-        return array_values(
-            array_filter(
-                iterator_to_array($this->items),
-                $this->filter($className)
-            )
-        );
+        return iterator_count($this->items);
+    }
+
+    /**
+     * @return mixed|null
+     */
+    private function getFilteredItem(string $className)
+    {
+        try {
+            $iterator = $this->items->getIterator();
+        } catch (Throwable $throwable) {
+            $this->logger->error($throwable->getMessage());
+
+            return null;
+        }
+
+        $filteredIterator = new CallbackFilterIterator(new IteratorIterator($iterator), $this->filter($className));
+        $filteredIterator->rewind();
+
+        return $filteredIterator->current();
     }
 }

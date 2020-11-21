@@ -10,25 +10,25 @@ namespace App\Form\Type\Traits;
 
 use App\Entity\UserGroup;
 use App\Resource\UserGroupResource;
+use Throwable;
 use function array_map;
 
 /**
  * Trait UserGroupChoices
  *
  * @package App\Form\Type\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait UserGroupChoices
 {
-    /**
-     * @var UserGroupResource
-     */
-    protected $userGroupResource;
+    protected UserGroupResource $userGroupResource;
 
     /**
      * Method to create choices array for user groups.
      *
-     * @return mixed[]
+     * @return array<string, string>
+     *
+     * @throws Throwable
      */
     protected function getUserGroupChoices(): array
     {
@@ -46,7 +46,6 @@ trait UserGroupChoices
             $choices[$name] = $userGroup->getId();
         };
 
-        /** @var UserGroup[] $userGroups */
         $userGroups = $this->userGroupResource->find();
 
         array_map($iterator, $userGroups);

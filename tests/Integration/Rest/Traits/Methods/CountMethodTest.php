@@ -8,8 +8,8 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Rest\Traits\Methods;
 
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Tests\Integration\Rest\Traits\Methods\src\CountMethodInvalidTestClass;
 use App\Tests\Integration\Rest\Traits\Methods\src\CountMethodTestClass;
 use Doctrine\ORM\NonUniqueResultException;
@@ -29,19 +29,19 @@ use Throwable;
  * Class CountMethodTest
  *
  * @package App\Tests\Integration\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class CountMethodTest extends KernelTestCase
 {
     /**
      * @throws Throwable
      */
-    public function testThatTraitThrowsAnException():void
+    public function testThatTraitThrowsAnException(): void
     {
         $this->expectException(LogicException::class);
 
-        /** @codingStandardsIgnoreStart */
-        $this->expectExceptionMessageRegExp(
+        /* @codingStandardsIgnoreStart */
+        $this->expectExceptionMessageMatches(
             '/You cannot use (.*) controller class with REST traits if that does not implement (.*)ControllerInterface\'/'
         );
         /** @codingStandardsIgnoreEnd */
@@ -57,9 +57,9 @@ class CountMethodTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod
      *
-     * @param string $httpMethod
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\CountMethod` throws an exception with `$httpMethod` HTTP method.
      */
     public function testThatTraitThrowsAnExceptionWithWrongHttpMethod(string $httpMethod): void
     {
@@ -114,11 +114,12 @@ class CountMethodTest extends KernelTestCase
      * @dataProvider dataProviderTestThatTraitHandlesException
      *
      * @param Exception $exception
-     * @param int        $expectedCode
      *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\CountMethod` uses `$expectedCode` code on HttpException.
      */
-    public function testThatTraitHandlesException(Exception $exception, int $expectedCode): void
+    public function testThatTraitHandlesException(\Throwable $exception, int $expectedCode): void
     {
         $resource = $this->createMock(RestResourceInterface::class);
         $responseHandler = $this->createMock(ResponseHandlerInterface::class);
@@ -158,7 +159,7 @@ class CountMethodTest extends KernelTestCase
 
         // Create request and response
         $request = Request::create('/count');
-        $response = Response::create(123);
+        $response = new Response('123');
 
         $resource
             ->expects(static::once())
@@ -175,9 +176,6 @@ class CountMethodTest extends KernelTestCase
         $testClass->countMethod($request)->getContent();
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod(): Generator
     {
         yield ['HEAD'];
@@ -190,9 +188,6 @@ class CountMethodTest extends KernelTestCase
         yield ['foobar'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitHandlesException(): Generator
     {
         yield [new HttpException(400), 0];

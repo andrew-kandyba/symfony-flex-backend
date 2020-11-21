@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraint;
  * @Target({"PROPERTY"})
  *
  * @package App\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EntityReferenceExists extends Constraint
 {
@@ -36,10 +36,12 @@ class EntityReferenceExists extends Constraint
      */
     public const MESSAGE_MULTIPLE = 'Invalid id values "{{ id }}" given for entity "{{ entity }}".';
 
+    public string $entityClass = '';
+
     /**
      * Error names configuration
      *
-     * @var mixed[]
+     * @var array<string, string>
      */
     protected static $errorNames = [
         self::ENTITY_REFERENCE_EXISTS_ERROR => 'ENTITY_REFERENCE_EXISTS_ERROR',

@@ -16,29 +16,14 @@ use App\Resource\LogLoginResource;
  * Class LogLoginRepositoryTest
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogLoginRepositoryTest extends RepositoryTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = LogLogin::class;
-
-    /**
-     * @var string
-     */
-    protected $repositoryName = LogLoginRepository::class;
-
-    /**
-     * @var string
-     */
-    protected $resourceName = LogLoginResource::class;
-
-    /**
-     * @var array
-     */
-    protected $associations = [
+    protected string $entityName = LogLogin::class;
+    protected string $repositoryName = LogLoginRepository::class;
+    protected string $resourceName = LogLoginResource::class;
+    protected array $associations = [
         'user',
     ];
 }

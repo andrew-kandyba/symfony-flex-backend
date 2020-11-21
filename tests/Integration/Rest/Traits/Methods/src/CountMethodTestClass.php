@@ -9,15 +9,15 @@ declare(strict_types = 1);
 namespace App\Tests\Integration\Rest\Traits\Methods\src;
 
 use App\Rest\Controller;
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Rest\Traits\Methods\CountMethod;
 
 /**
  * Class CountMethodTestClass - just a dummy class so that we can actually test that trait.
  *
  * @package App\Tests\Integration\Rest\Traits\Methods\src
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class CountMethodTestClass extends Controller
 {
@@ -25,9 +25,6 @@ abstract class CountMethodTestClass extends Controller
 
     /**
      * CountMethodTestClass constructor.
-     *
-     * @param RestResourceInterface    $resource
-     * @param ResponseHandlerInterface $responseHandler
      */
     public function __construct(RestResourceInterface $resource, ResponseHandlerInterface $responseHandler)
     {

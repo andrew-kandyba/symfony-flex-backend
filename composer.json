@@ -1,14 +1,14 @@
 {
 	"name": "tarlepp/symfony-flex-backend",
-	"description": "JSON REST API which is build on top of Symfony framework.",
-	"version": "0.2.1",
 	"type": "project",
+	"description": "JSON REST API which is build on top of Symfony framework.",
 	"keywords": [
 		"Symfony",
 		"Flex",
 		"API"
 	],
 	"homepage": "https://github.com/tarlepp/symfony-flex-backend",
+	"version": "0.0.0",
 	"license": "MIT",
 	"authors": [
 		{
@@ -18,58 +18,84 @@
 			"role": "Developer"
 		}
 	],
-	"support": {
-		"issues": "https://github.com/tarlepp/symfony-flex-backend/issues"
-	},
-	"prefer-stable": true,
 	"require": {
-		"php": "^7.2.0",
+		"php": "^7.4.0",
 		"ext-iconv": "*",
 		"ext-json": "*",
-		"doctrine/annotations": "1.6.1",
-		"doctrine/doctrine-fixtures-bundle": "3.2.2",
-		"doctrine/doctrine-migrations-bundle": "2.0.0",
-		"easycorp/easy-log-handler": "1.0.7",
-		"lexik/jwt-authentication-bundle": "2.6.3",
-		"mark-gerarts/automapper-plus-bundle": "1.1.0",
-		"matthiasnoback/symfony-console-form": "3.6.0",
-		"nelmio/api-doc-bundle": "3.4.0",
-		"nelmio/cors-bundle": "1.5.6",
-		"piwik/device-detector": "3.11.8",
-		"ramsey/uuid": "3.8.0",
-		"sensio/framework-extra-bundle": "5.3.1",
-		"sensiolabs/security-checker": "6.0.1",
-		"stof/doctrine-extensions-bundle": "1.3.0",
-		"symfony/asset": "*",
-		"symfony/console": "*",
-		"symfony/expression-language": "*",
-		"symfony/flex": "1.4.1",
-		"symfony/form": "*",
-		"symfony/framework-bundle": "*",
-		"symfony/monolog-bundle": "3.4.0",
-		"symfony/orm-pack": "*",
-		"symfony/security-bundle": "*",
-		"symfony/serializer-pack": "*",
-		"symfony/translation": "*",
-		"symfony/twig-bundle": "*",
-		"symfony/validator": "*",
-		"symfony/yaml": "*"
+		"ext-mbstring": "*",
+		"ext-pdo": "*",
+		"ext-pdo_mysql": "*",
+		"antishov/doctrine-extensions-bundle": "1.4.2",
+		"doctrine/annotations": "1.10.4",
+		"doctrine/doctrine-bundle": "2.1.2",
+		"doctrine/doctrine-migrations-bundle": "3.0.1",
+		"doctrine/orm": "2.7.4",
+		"easycorp/easy-log-handler": "1.0.9",
+		"lexik/jwt-authentication-bundle": "2.8.0",
+		"mark-gerarts/automapper-plus-bundle": "1.3.0",
+		"matthiasnoback/symfony-console-form": "4.1.0",
+		"nelmio/api-doc-bundle": "4.0.1",
+		"nelmio/cors-bundle": "2.1.0",
+		"piwik/device-detector": "3.13.0",
+		"ramsey/uuid-doctrine": "1.6.0",
+		"sensio/framework-extra-bundle": "5.6.1",
+		"symfony/asset": "5.1.7",
+		"symfony/config": "5.1.7",
+		"symfony/console": "5.1.7",
+		"symfony/dotenv": "5.1.7",
+		"symfony/expression-language": "5.1.7",
+		"symfony/flex": "1.9.10",
+		"symfony/form": "5.1.7",
+		"symfony/framework-bundle": "5.1.7",
+		"symfony/monolog-bundle": "3.6.0",
+		"symfony/polyfill-php80": "1.18.1",
+		"symfony/process": "5.1.7",
+		"symfony/routing": "5.1.7",
+		"symfony/security-bundle": "5.1.7",
+		"symfony/serializer-pack": "1.0.4",
+		"symfony/translation": "5.1.7",
+		"symfony/twig-bundle": "5.1.7",
+		"symfony/validator": "5.1.7",
+		"symfony/yaml": "5.1.7"
+	},
+	"conflict": {
+		"symfony/debug": "<3.3",
+		"symfony/symfony": "*",
+		"symfony/twig-bundle": "<3.3"
 	},
 	"require-dev": {
-		"bamarni/composer-bin-plugin": "1.3.0",
+		"bamarni/composer-bin-plugin": "1.4.1",
+		"doctrine/doctrine-fixtures-bundle": "3.3.2",
 		"roave/security-advisories": "dev-master",
-		"symfony/browser-kit": "*",
-		"symfony/debug-pack": "1.0.7",
-		"symfony/dotenv": "*",
-		"symfony/maker-bundle": "1.11.6",
-		"symfony/requirements-checker": "1.1.5",
-		"symfony/web-server-bundle": "*"
+		"sensiolabs/security-checker": "6.0.3",
+		"symfony/browser-kit": "5.1.7",
+		"symfony/debug-bundle": "5.1.7",
+		"symfony/maker-bundle": "1.21.1",
+		"symfony/requirements-checker": "2.0.0",
+		"symfony/stopwatch": "5.1.7",
+		"symfony/var-dumper": "5.1.7",
+		"symfony/web-profiler-bundle": "5.1.7"
 	},
 	"config": {
+		"platform": {
+			"php": "7.4.0"
+		},
 		"preferred-install": {
 			"*": "dist"
 		},
 		"sort-packages": true
+	},
+	"extra": {
+		"allow-contrib": "true",
+		"bamarni-bin": {
+			"target-directory": "tools"
+		},
+		"projectTitle": "Symfony Flex Backend",
+		"symfony": {
+			"id": "01BFA135DXTPRA5CR250NTJJJP",
+			"require": "5.1.7",
+			"allow-contrib": true
+		}
 	},
 	"autoload": {
 		"psr-4": {
@@ -81,46 +107,43 @@
 	"autoload-dev": {
 		"psr-4": {
 			"App\\Tests\\": "tests/",
-			"PHPUnit\\": "vendor-bin/phpunit/vendor/phpunit/phpunit/src/",
-			"PHPUnit\\Framework\\MockObject\\": "vendor-bin/phpunit/vendor/phpunit/phpunit/src/Framework/MockObject/ForwardCompatibility",
-			"SebastianBergmann\\FinderFacade\\": "vendor-bin/phpunit/vendor/sebastian/finder-facade/src",
-			"Symfony\\Component\\BrowserKit\\": "vendor-bin/phpunit/vendor/symfony/browser-kit",
-			"Symfony\\Component\\DomCrawler\\": "vendor-bin/phpunit/vendor/symfony/dom-crawler",
-			"Symfony\\Bridge\\PhpUnit\\": "vendor-bin/phpunit/vendor/symfony/phpunit-bridge",
-			"TheSeer\\fDOM\\": "vendor-bin/phpunit/vendor/theseer/fdomdocument/src",
-			"Liuggio\\Fastest\\": ["vendor-bin/phpunit/vendor/liuggio/fastest/src", "vendor-bin/phpunit/vendor/liuggio/fastest/adapters"]
+			"PHPUnit\\": "tools/01_phpunit/vendor/phpunit/phpunit/src",
+			"SebastianBergmann\\FinderFacade\\": "tools/01_phpunit/vendor/sebastian/finder-facade/src",
+			"Symfony\\Bridge\\PhpUnit\\": "tools/01_phpunit/vendor/symfony/phpunit-bridge",
+			"TheSeer\\fDOM\\": "tools/01_phpunit/vendor/theseer/fdomdocument/src",
+			"Liuggio\\Fastest\\": [
+				"tools/01_phpunit/vendor/liuggio/fastest/src",
+				"tools/01_phpunit/vendor/liuggio/fastest/adapters"
+			],
+			"PhpCsFixer\\": "tools/04_ecs/vendor/friendsofphp/php-cs-fixer/src",
+			"SlevomatCodingStandard\\": "tools/04_ecs/vendor/slevomat/coding-standard/SlevomatCodingStandard",
+			"Symplify\\CodingStandard\\": "tools/04_ecs/vendor/symplify/coding-standard/src"
 		}
 	},
+	"prefer-stable": true,
 	"scripts": {
-		"auto-scripts": {
-			"requirements-checker": "script",
-			"security-checker security:check": "script",
-			"assets:install --symlink --relative %PUBLIC_DIR%": "symfony-cmd",
-			"cache:clear": "symfony-cmd",
-			"cache:warmup": "symfony-cmd"
-		},
 		"post-install-cmd": [
-			"@composer bin all install --ansi",
+			"if test -d vendor/symfony/requirements-checker; then ./vendor/bin/requirements-checker; fi",
+			"if test -d vendor/sensiolabs/security-checker; then ./vendor/bin/security-checker security:check; fi",
+			"if test -d vendor/bamarni/composer-bin-plugin; then make update-bin; fi",
 			"@auto-scripts",
 			"@composer dump-autoload"
 		],
 		"post-update-cmd": [
-			"@composer bin all update --ansi",
+			"if test -d vendor/symfony/requirements-checker; then ./vendor/bin/requirements-checker; fi",
+			"if test -d vendor/sensiolabs/security-checker; then ./vendor/bin/security-checker security:check; fi",
+			"if test -d vendor/bamarni/composer-bin-plugin; then composer bin all update; fi",
 			"@auto-scripts",
 			"@composer dump-autoload"
-		]
-	},
-	"conflict": {
-		"symfony/symfony": "*",
-		"symfony/twig-bundle": "<3.3",
-		"symfony/debug": "<3.3"
-	},
-	"extra": {
-			"allow-contrib": "true",
-		"projectTitle": "Symfony Flex Backend",
-		"symfony": {
-			"id": "01BFA135DXTPRA5CR250NTJJJP",
-			"require": "4.3.2"
+		],
+		"auto-scripts": {
+			"cache:clear": "symfony-cmd",
+			"cache:warmup": "symfony-cmd",
+			"assets:install --symlink --relative %PUBLIC_DIR%": "symfony-cmd",
+			"assets:install %PUBLIC_DIR%": "symfony-cmd"
 		}
+	},
+	"support": {
+		"issues": "https://github.com/tarlepp/symfony-flex-backend/issues"
 	}
 }

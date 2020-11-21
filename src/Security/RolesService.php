@@ -8,9 +8,11 @@ declare(strict_types = 1);
 
 namespace App\Security;
 
+use App\Security\Interfaces\RolesServiceInterface;
 use Symfony\Component\Security\Core\Role\RoleHierarchy;
 use function array_key_exists;
 use function array_unique;
+use function array_values;
 use function mb_strpos;
 use function mb_strtolower;
 use function mb_substr;
@@ -19,21 +21,21 @@ use function mb_substr;
  * Class Roles
  *
  * @package App\Security
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RolesService implements RolesServiceInterface
 {
     /**
      * Roles hierarchy.
      *
-     * @var mixed[]
+     * @var array<string, array<int, string>>
      */
-    private $rolesHierarchy;
+    private array $rolesHierarchy;
 
     /**
-     * @var mixed[]
+     * @var array<string, string>
      */
-    private static $roleNames = [
+    private static array $roleNames = [
         self::ROLE_LOGGED => 'Logged in users',
         self::ROLE_USER => 'Normal users',
         self::ROLE_ADMIN => 'Admin users',
@@ -44,28 +46,18 @@ class RolesService implements RolesServiceInterface
     /**
      * RolesHelper constructor.
      *
-     * @param mixed[] $rolesHierarchy This is a 'security.role_hierarchy.roles' parameter value
+     * @param array<string, array<int, string>> $rolesHierarchy
      */
     public function __construct(array $rolesHierarchy)
     {
         $this->rolesHierarchy = $rolesHierarchy;
     }
 
-    /**
-     * Getter for role hierarchy.
-     *
-     * @return mixed[]
-     */
     public function getHierarchy(): array
     {
         return $this->rolesHierarchy;
     }
 
-    /**
-     * Getter method to return all roles in single dimensional array.
-     *
-     * @return string[]
-     */
     public function getRoles(): array
     {
         return [
@@ -77,13 +69,6 @@ class RolesService implements RolesServiceInterface
         ];
     }
 
-    /**
-     * Getter method for role label.
-     *
-     * @param string $role
-     *
-     * @return string
-     */
     public function getRoleLabel(string $role): string
     {
         $output = 'Unknown - ' . $role;
@@ -95,13 +80,6 @@ class RolesService implements RolesServiceInterface
         return $output;
     }
 
-    /**
-     * Getter method for short role.
-     *
-     * @param string $role
-     *
-     * @return string
-     */
     public function getShort(string $role): string
     {
         $offset = mb_strpos($role, '_');
@@ -110,15 +88,8 @@ class RolesService implements RolesServiceInterface
         return mb_strtolower(mb_substr($role, $offset));
     }
 
-    /**
-     * Helper method to get inherited roles for given roles.
-     *
-     * @param string[] $roles
-     *
-     * @return string[]
-     */
     public function getInheritedRoles(array $roles): array
     {
-        return array_unique((new RoleHierarchy($this->rolesHierarchy))->getReachableRoleNames($roles));
+        return array_values(array_unique((new RoleHierarchy($this->rolesHierarchy))->getReachableRoleNames($roles)));
     }
 }

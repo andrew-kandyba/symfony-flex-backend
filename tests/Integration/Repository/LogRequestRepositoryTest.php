@@ -16,34 +16,15 @@ use App\Resource\LogRequestResource;
  * Class UserRepositoryTest
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogRequestRepositoryTest extends RepositoryTestCase
 {
-    /**
-     * @var LogRequestRepository
-     */
-    protected $repository;
-
-    /**
-     * @var string
-     */
-    protected $entityName = LogRequest::class;
-
-    /**
-     * @var string
-     */
-    protected $repositoryName = LogRequestRepository::class;
-
-    /**
-     * @var string
-     */
-    protected $resourceName = LogRequestResource::class;
-
-    /**
-     * @var array
-     */
-    protected $associations = [
+    protected LogRequestRepository $repository;
+    protected string $entityName = LogRequest::class;
+    protected string $repositoryName = LogRequestRepository::class;
+    protected string $resourceName = LogRequestResource::class;
+    protected array $associations = [
         'user',
         'apiKey',
     ];

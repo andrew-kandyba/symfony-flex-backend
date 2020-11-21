@@ -10,30 +10,21 @@ namespace App\Tests\Integration\AutoMapper\src;
 
 use App\DTO\RestDto;
 use App\DTO\RestDtoInterface;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 
 /**
  * Class TestRestRequestMapperDto
  *
  * @package App\Tests\Integration\AutoMapper\src
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class TestRestRequestMapperDto extends RestDto
 {
-    /**
-     * @var string
-     */
-    protected $someProperty = '';
-
-    /**
-     * @var string
-     */
-    protected $someTransformProperty = '';
+    protected string $someProperty = '';
+    protected string $someTransformProperty = '';
 
     /**
      * Method to load DTO data from specified entity.
-     *
-     * @param EntityInterface $entity
      *
      * @return RestDtoInterface|TestRestRequestMapperDto
      */
@@ -42,17 +33,12 @@ class TestRestRequestMapperDto extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getSomeProperty(): string
     {
         return $this->someProperty;
     }
 
     /**
-     * @param string $someProperty
-     *
      * @return TestRestRequestMapperDto
      */
     public function setSomeProperty(string $someProperty): self
@@ -62,17 +48,12 @@ class TestRestRequestMapperDto extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getSomeTransformProperty(): string
     {
         return $this->someTransformProperty;
     }
 
     /**
-     * @param string $someTransformProperty
-     *
      * @return TestRestRequestMapperDto
      */
     public function setSomeTransformProperty(string $someTransformProperty): self

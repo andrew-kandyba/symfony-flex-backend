@@ -17,7 +17,7 @@ use Throwable;
  * Class RoleRepositoryTest
  *
  * @package Functional\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleRepositoryTest extends KernelTestCase
 {
@@ -31,9 +31,22 @@ class RoleRepositoryTest extends KernelTestCase
      */
     public static function tearDownAfterClass(): void
     {
-        parent::tearDownAfterClass();
+        static::bootKernel();
 
         PhpUnitUtil::loadFixtures(static::$kernel);
+
+        static::$kernel->shutdown();
+
+        parent::tearDownAfterClass();
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        $this->repository = static::$container->get(RoleRepository::class);
     }
 
     /**
@@ -44,14 +57,5 @@ class RoleRepositoryTest extends KernelTestCase
         static::assertSame(5, $this->repository->countAdvanced());
         static::assertSame(5, $this->repository->reset());
         static::assertSame(0, $this->repository->countAdvanced());
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->repository = static::$container->get(RoleRepository::class);
     }
 }

@@ -13,7 +13,9 @@ use Doctrine\ORM\Query\Expr\Composite;
 use Doctrine\ORM\Query\Expr\Literal;
 use Doctrine\ORM\QueryBuilder;
 use InvalidArgumentException;
+use Ramsey\Uuid\Exception\InvalidUuidStringException;
 use stdClass;
+use Throwable;
 use function array_combine;
 use function array_key_exists;
 use function array_map;
@@ -30,16 +32,15 @@ use function strtolower;
  * Class RepositoryHelper
  *
  * @package App\Rest
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RepositoryHelper
 {
     /**
-     * Parameter count in current query, this is used to track parameters which are bind to current query.
-     *
-     * @var int
+     * Parameter count in current query, this is used to track parameters which
+     * are bind to current query.
      */
-    public static $parameterCount = 0;
+    public static int $parameterCount = 0;
 
     /**
      * Method to reset current parameter count value
@@ -50,44 +51,48 @@ class RepositoryHelper
     }
 
     /**
-     * Process given criteria which is given by ?where parameter. This is given as JSON string, which is converted
-     * to assoc array for this process.
+     * Process given criteria which is given by ?where parameter. This is given
+     * as JSON string, which is converted to assoc array for this process.
      *
-     * Note that this supports by default (without any extra work) just 'eq' and 'in' expressions. See example array
-     * below:
+     * Note that this supports by default (without any extra work) just 'eq'
+     * and 'in' expressions. See example array below:
      *
      *  [
-     *      'u.id'  => 3,
+     *      'u.id' => 3,
      *      'u.uid' => 'uid',
      *      'u.foo' => [1, 2, 3],
      *      'u.bar' => ['foo', 'bar'],
      *  ]
      *
-     * And these you can make easily happen within REST controller and simple 'where' parameter. See example below:
+     * And these you can make easily happen within REST controller and simple
+     * 'where' parameter. See example below:
      *
      *  ?where={"u.id":3,"u.uid":"uid","u.foo":[1,2,3],"u.bar":["foo","bar"]}
      *
-     * Also note that you can make more complex use case fairly easy, just follow instructions below.
+     * Also note that you can make more complex use case fairly easy, just
+     * follow instructions below.
      *
-     * If you're trying to make controller specified special criteria with projects generic Rest controller, just
-     * add 'processCriteria(array &$criteria)' method to your own controller and pre-process that criteria in there
-     * the way you want it to be handled. In other words just modify that basic key-value array just as you like it,
-     * main goal is to create array that is compatible with 'getExpression' method in this class. For greater detail
-     * just see that method comments.
+     * If you're trying to make controller specified special criteria with
+     * projects generic Rest controller, just add 'processCriteria(array &$criteria)'
+     * method to your own controller and pre-process that criteria in there
+     * the way you want it to be handled. In other words just modify that basic
+     * key-value array just as you like it, main goal is to create array that
+     * is compatible with 'getExpression' method in this class. For greater
+     * detail just see that method comments.
      *
-     * tl;dr Modify your $criteria parameter in your controller with 'processCriteria(array &$criteria)' method.
+     * tl;dr Modify your $criteria parameter in your controller with
+     * 'processCriteria(array &$criteria)' method.
      *
-     * @see \App\Rest\Repository::getExpression
-     * @see \App\Controller\Rest::processCriteria
+     * @see \App\Rest\Repository::getExpression()
+     * @see \App\Controller\Rest::processCriteria()
      *
-     * @param QueryBuilder $queryBuilder
-     * @param mixed[]|null $criteria
+     * @param array<int|string, string|array>|null $criteria
      *
      * @throws InvalidArgumentException
      */
     public static function processCriteria(QueryBuilder $queryBuilder, ?array $criteria = null): void
     {
-        $criteria = $criteria ?? [];
+        $criteria ??= [];
 
         if (count($criteria) === 0) {
             return;
@@ -104,20 +109,20 @@ class RepositoryHelper
     }
 
     /**
-     * Helper method to process given search terms and create criteria about those. Note that each repository
-     * has 'searchColumns' property which contains the fields where search term will be affected.
+     * Helper method to process given search terms and create criteria about
+     * those. Note that each repository has 'searchColumns' property which
+     * contains the fields where search term will be affected.
      *
      * @see \App\Controller\Rest::getSearchTerms
      *
-     * @param QueryBuilder $queryBuilder
-     * @param string[]     $columns
-     * @param mixed[]|null $terms
+     * @param array<int, string> $columns
+     * @param array<string, string>|null $terms
      *
      * @throws InvalidArgumentException
      */
     public static function processSearchTerms(QueryBuilder $queryBuilder, array $columns, ?array $terms = null): void
     {
-        $terms = $terms ?? [];
+        $terms ??= [];
 
         if (count($columns) === 0) {
             return;
@@ -136,12 +141,11 @@ class RepositoryHelper
     /**
      * Simple process method for order by part of for current query builder.
      *
-     * @param QueryBuilder $queryBuilder
-     * @param mixed[]|null $orderBy
+     * @param array<string, string>|null $orderBy
      */
     public static function processOrderBy(QueryBuilder $queryBuilder, ?array $orderBy = null): void
     {
-        $orderBy = $orderBy ?? [];
+        $orderBy ??= [];
 
         foreach ($orderBy as $column => $order) {
             if (strpos($column, '.') === false) {
@@ -156,44 +160,46 @@ class RepositoryHelper
      * Recursively takes the specified criteria and adds too the expression.
      *
      * The criteria is defined in an array notation where each item in the list
-     * represents a comparison <fieldName, operator, value>. The operator maps to
-     * comparison methods located in ExpressionBuilder. The key in the array can
-     * be used to identify grouping of comparisons.
+     * represents a comparison <fieldName, operator, value>. The operator maps
+     * to comparison methods located in ExpressionBuilder. The key in the array
+     * can be used to identify grouping of comparisons.
      *
-     * Currently supported  Doctrine\ORM\Query\Expr methods:
+     * Currently supported Doctrine\ORM\Query\Expr methods:
      *
-     * OPERATOR    EXAMPLE INPUT ARRAY             GENERATED QUERY RESULT      NOTES
-     *  eq          ['u.id',  'eq',        123]     u.id = ?1                   -
-     *  neq         ['u.id',  'neq',       123]     u.id <> ?1                  -
-     *  lt          ['u.id',  'lt',        123]     u.id < ?1                   -
-     *  lte         ['u.id',  'lte',       123]     u.id <= ?1                  -
-     *  gt          ['u.id',  'gt',        123]     u.id > ?1                   -
-     *  gte         ['u.id',  'gte',       123]     u.id >= ?1                  -
-     *  in          ['u.id',  'in',        [1,2]]   u.id IN (1,2)               third value may contain n values
-     *  notIn       ['u.id',  'notIn',     [1,2]]   u.id NOT IN (1,2)           third value may contain n values
-     *  isNull      ['u.id',  'isNull',    null]    u.id IS NULL                third value must be set, but not used
-     *  isNotNull   ['u.id',  'isNotNull', null]    u.id IS NOT NULL            third value must be set, but not used
-     *  like        ['u.id',  'like',      'abc']   u.id LIKE ?1                -
-     *  notLike     ['u.id',  'notLike',   'abc']   u.id NOT LIKE ?1            -
-     *  between     ['u.id',  'between',  [1,6]]    u.id BETWEEN ?1 AND ?2      third value must contain two values
+     * OPERATOR EXAMPLE INPUT ARRAY GENERATED QUERY RESULT NOTES
+     *  eq ['u.id', 'eq', 123] u.id = ?1 -
+     *  neq ['u.id', 'neq', 123] u.id <> ?1 -
+     *  lt ['u.id', 'lt', 123] u.id < ?1 -
+     *  lte ['u.id', 'lte', 123] u.id <= ?1 -
+     *  gt ['u.id', 'gt', 123] u.id > ?1 -
+     *  gte ['u.id', 'gte', 123] u.id >= ?1 -
+     *  in ['u.id', 'in', [1,2]] u.id IN (1,2) third value may contain n values
+     *  notIn ['u.id', 'notIn', [1,2]] u.id NOT IN (1,2) third value may contain n values
+     *  isNull ['u.id', 'isNull', null] u.id IS NULL third value must be set, but not used
+     *  isNotNull ['u.id', 'isNotNull', null] u.id IS NOT NULL third value must be set, but not used
+     *  like ['u.id', 'like', 'abc'] u.id LIKE ?1 -
+     *  notLike ['u.id', 'notLike', 'abc'] u.id NOT LIKE ?1 -
+     *  between ['u.id', 'between', [1,6]] u.id BETWEEN ?1 AND ?2 third value must contain two values
      *
-     * Also note that you can easily combine 'and' and 'or' queries like following examples:
+     * Also note that you can easily combine 'and' and 'or' queries like
+     * following examples:
      *
-     * EXAMPLE INPUT ARRAY                                  GENERATED QUERY RESULT
+     * EXAMPLE INPUT ARRAY GENERATED QUERY RESULT
      *  [
      *      'and' => [
-     *          ['u.firstName', 'eq',   'foo bar']
-     *          ['u.lastName',  'neq',  'not this one']
+     *          ['u.firstName', 'eq', 'foo bar']
+     *          ['u.lastName', 'neq', 'not this one']
      *      ]
-     *  ]                                                   (u.firstName = ?1 AND u.lastName <> ?2)
+     *  ] (u.firstName = ?1 AND u.lastName <> ?2)
      *  [
      *      'or' => [
-     *          ['u.firstName', 'eq',   'foo bar']
-     *          ['u.lastName',  'neq',  'not this one']
+     *          ['u.firstName', 'eq', 'foo bar']
+     *          ['u.lastName', 'neq', 'not this one']
      *      ]
-     *  ]                                                   (u.firstName = ?1 OR u.lastName <> ?2)
+     *  ] (u.firstName = ?1 OR u.lastName <> ?2)
      *
-     * Also note that you can nest these criteria arrays as many levels as you need - only the sky is the limit...
+     * Also note that you can nest these criteria arrays as many levels as you
+     * need - only the sky is the limit...
      *
      * @example
      *  $criteria = [
@@ -224,11 +230,7 @@ class RepositoryHelper
      *
      * @see https://gist.github.com/jgornick/8671644
      *
-     * @param QueryBuilder $queryBuilder
-     * @param Composite    $expression
-     * @param mixed[]      $criteria
-     *
-     * @return Composite
+     * @param array<int|string, string|array> $criteria
      *
      * @throws InvalidArgumentException
      */
@@ -243,9 +245,7 @@ class RepositoryHelper
     }
 
     /**
-     * @param QueryBuilder $queryBuilder
-     * @param Composite    $expression
-     * @param mixed[]      $criteria
+     * @param array<int|string, string|array> $criteria
      *
      * @throws InvalidArgumentException
      */
@@ -262,11 +262,7 @@ class RepositoryHelper
     }
 
     /**
-     * @param QueryBuilder $queryBuilder
-     * @param Composite    $expression
-     * @param bool         $expressionAnd
-     * @param bool         $expressionOr
-     * @param mixed        $comparison
+     * @param array<int|string, string|array> $comparison
      *
      * @throws InvalidArgumentException
      */
@@ -295,10 +291,9 @@ class RepositoryHelper
     /**
      * Lambda function to create condition array for 'getExpression' method.
      *
-     * @param string $column
-     * @param mixed  $value
+     * @param string|array<int, string> $value
      *
-     * @return mixed[]
+     * @return array<int, string|array>
      */
     private static function createCriteria(string $column, $value): array
     {
@@ -312,10 +307,9 @@ class RepositoryHelper
     }
 
     /**
-     * @param QueryBuilder $queryBuilder
-     * @param mixed[]      $comparison
+     * @param array<int|string, string|array> $comparison
      *
-     * @return mixed[]
+     * @return array<int, mixed>
      */
     private static function determineComparisonAndParameters(QueryBuilder $queryBuilder, array $comparison): array
     {
@@ -342,12 +336,10 @@ class RepositoryHelper
     }
 
     /**
-     * @param QueryBuilder $queryBuilder
-     * @param string       $lowercaseOperator
-     * @param mixed[]      $parameters
-     * @param mixed[]      $value
+     * @param array<int, string> $parameters
+     * @param array<int, mixed> $value
      *
-     * @return mixed[]
+     * @return array<int, array<int, Literal>|string>
      */
     private static function getParameters(
         QueryBuilder $queryBuilder,
@@ -358,51 +350,53 @@ class RepositoryHelper
         // Operator is between, so we need to add third parameter for Expr method
         if ($lowercaseOperator === 'between') {
             $parameters[] = '?' . self::$parameterCount;
-            $queryBuilder->setParameter(self::$parameterCount, $value[0]);
+            $queryBuilder->setParameter(self::$parameterCount, $value[0], UuidHelper::getType((string)$value[0]));
 
             self::$parameterCount++;
 
             $parameters[] = '?' . self::$parameterCount;
-            $queryBuilder->setParameter(self::$parameterCount, $value[1]);
-        } else { // Otherwise this must be IN or NOT IN expression
-            $parameters[] = array_map(static function (string $value) use ($queryBuilder): Literal {
-                return $queryBuilder->expr()->literal(is_numeric($value) ? (int)$value : $value);
-            }, $value);
+            $queryBuilder->setParameter(self::$parameterCount, $value[1], UuidHelper::getType((string)$value[1]));
+        } else {
+            // Otherwise this must be IN or NOT IN expression
+            try {
+                $value = array_map([UuidHelper::class, 'getBytes'], $value);
+            } catch (InvalidUuidStringException $exception) {
+                (static fn (Throwable $exception): Throwable => $exception)($exception);
+            }
+
+            $parameters[] = array_map(
+                static fn (string $value): Literal => $queryBuilder->expr()->literal(is_numeric($value)
+                    ? (int)$value
+                    : $value),
+                $value
+            );
         }
 
         return $parameters;
     }
 
     /**
-     * @param mixed[] $condition
+     * @param array<int|string, string|array> $condition
      *
-     * @return Closure
+     * @psalm-suppress MissingClosureParamType
      */
     private static function getIterator(array &$condition): Closure
     {
-        /**
-         * @psalm-suppress MissingClosureParamType
-         *
-         * @param string|array|mixed $value
-         * @param string|int         $column
-         */
-        return static function ($value, $column) use (&$condition): void {
+        return static function ($value, string $column) use (&$condition): void {
             // If criteria contains 'and' OR 'or' key(s) assume that array in only in the right format
             if (strcmp($column, 'and') === 0 || strcmp($column, 'or') === 0) {
                 $condition[$column] = $value;
-            } else { // Add condition
-                $condition[] = self::createCriteria(is_numeric($column) ? (int)$column : $column, $value);
+            } else {
+                // Add condition
+                $condition[] = self::createCriteria($column, $value);
             }
         };
     }
 
     /**
-     * @param QueryBuilder $queryBuilder
-     * @param stdClass     $comparison
-     * @param string       $lowercaseOperator
-     * @param mixed[]      $parameters
+     * @param array<int, string> $parameters
      *
-     * @return mixed[]
+     * @return array<int, array<int, Literal>|string>
      */
     private static function getComparisonParameters(
         QueryBuilder $queryBuilder,
@@ -417,7 +411,11 @@ class RepositoryHelper
         } else {
             $parameters[] = '?' . self::$parameterCount;
 
-            $queryBuilder->setParameter(self::$parameterCount, $comparison->value);
+            $queryBuilder->setParameter(
+                self::$parameterCount,
+                $comparison->value,
+                UuidHelper::getType((string)$comparison->value)
+            );
         }
 
         return $parameters;

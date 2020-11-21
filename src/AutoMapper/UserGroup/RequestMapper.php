@@ -17,24 +17,22 @@ use Doctrine\ORM\ORMException;
  * Class RequestMapper
  *
  * @package App\AutoMapper
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RequestMapper extends RestRequestMapper
 {
-    protected static $properties = [
+    /**
+     * @var array<int, string>
+     */
+    protected static array $properties = [
         'name',
         'role',
     ];
 
-    /**
-     * @var RoleResource
-     */
-    private $roleResource;
+    private RoleResource $roleResource;
 
     /**
      * RequestMapper constructor.
-     *
-     * @param RoleResource $roleResource
      */
     public function __construct(RoleResource $roleResource)
     {
@@ -42,10 +40,6 @@ class RequestMapper extends RestRequestMapper
     }
 
     /**
-     * @param string $role
-     *
-     * @return Role
-     *
      * @throws ORMException
      */
     protected function transformRole(string $role): Role

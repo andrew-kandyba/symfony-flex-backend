@@ -11,7 +11,7 @@ namespace App\Tests\Integration\DTO;
 use App\DTO\RestDtoInterface;
 use App\DTO\User\User;
 use App\Entity\User as UserEntity;
-use App\Tests\Integration\Dto\src\DummyDto;
+use App\Tests\Integration\DTO\src\DummyDto;
 use App\Utils\Tests\PhpUnitUtil;
 use BadMethodCallException;
 use Generator;
@@ -24,7 +24,7 @@ use Throwable;
  * Class GenericDtoTest
  *
  * @package App\Tests\Integration\DTO
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class GenericDtoTest extends KernelTestCase
 {
@@ -43,20 +43,16 @@ class GenericDtoTest extends KernelTestCase
             ->method('getVisited')
             ->willReturn(['foo']);
 
-        $dto = new User();
-        $dto->patch($dtoMock);
-
-        unset($dto, $dtoMock);
+        (new User())
+            ->patch($dtoMock);
     }
 
     /**
      * @dataProvider dataProviderTestThatDetermineGetterMethodReturnsExpected
      *
-     * @param string           $expected
-     * @param string           $property
-     * @param RestDtoInterface $dto
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `determineGetterMethod` method returns `$expected` when using `$dto::$$property` property.
      */
     public function testThatDetermineGetterMethodReturnsExpected(
         string $expected,
@@ -73,13 +69,11 @@ class GenericDtoTest extends KernelTestCase
 
         require_once __DIR__ . '/src/DummyDto.php';
 
-        $dtoMock = new DummyDto();
-        $dtoMock->setFoo('foo');
+        $dtoMock = (new DummyDto())
+            ->setFoo('foo');
 
-        $dto = new User();
-        $dto->patch($dtoMock);
-
-        unset($dto, $dtoMock);
+        (new User())
+            ->patch($dtoMock);
     }
 
     /**
@@ -105,7 +99,8 @@ class GenericDtoTest extends KernelTestCase
             ->method('getEmail')
             ->willReturn('email@com');
 
-        $dto = (new User())->patch($dtoUser);
+        $dto = (new User())
+            ->patch($dtoUser);
 
         static::assertSame('username', $dto->getUsername());
         static::assertSame('email@com', $dto->getEmail());
@@ -137,17 +132,13 @@ class GenericDtoTest extends KernelTestCase
             ->with('password')
             ->willReturn($userEntity);
 
-        $dto = (new User())
+        (new User())
             ->setUsername('username')
             ->setEmail('email@com')
-            ->setPassword('password');
-
-        $dto->update($userEntity);
+            ->setPassword('password')
+            ->update($userEntity);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatDetermineGetterMethodReturnsExpected(): Generator
     {
         yield [

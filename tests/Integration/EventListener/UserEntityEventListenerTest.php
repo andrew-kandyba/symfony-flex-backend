@@ -15,7 +15,6 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use LengthException;
-use Psr\Container\ContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Throwable;
@@ -24,34 +23,58 @@ use Throwable;
  * Class UserEntityEventListenerTest
  *
  * @package App\Tests\Integration\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserEntityEventListenerTest extends KernelTestCase
 {
-    /**
-     * @var EntityManager
-     */
-    protected $entityManager;
+    private EntityManager $entityManager;
+    private User $entity;
+    private UserPasswordEncoderInterface $encoder;
+    private UserEntityEventListener $subscriber;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        // Store container and entity manager
+        $testContainer = static::$kernel->getContainer();
+
+        /* @noinspection MissingService */
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->entityManager = $testContainer->get('doctrine.orm.default_entity_manager');
+
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->encoder = $testContainer->get('security.password_encoder');
+
+        // Create listener
+        $this->subscriber = new UserEntityEventListener($this->encoder);
+
+        // Create new user but not store it at this time
+        $this->entity = (new User())
+            ->setUsername('john_doe_the_tester')
+            ->setEmail('john.doe_the_tester@test.com')
+            ->setFirstName('John')
+            ->setLastName('Doe');
+    }
 
     /**
-     * @var ContainerInterface
+     * @throws Throwable
      */
-    private $testContainer;
+    protected function tearDown(): void
+    {
+        if ($this->entityManager->contains($this->entity)) {
+            $this->entityManager->remove($this->entity);
+            $this->entityManager->flush();
+        }
 
-    /**
-     * @var User
-     */
-    protected $entity;
+        $this->entityManager->close();
 
-    /**
-     * @var UserPasswordEncoderInterface
-     */
-    protected $encoder;
+        static::$kernel->shutdown();
 
-    /**
-     * @var UserEntityEventListener
-     */
-    protected $subscriber;
+        parent::tearDown();
+    }
 
     public function testThatTooShortPasswordThrowsAnExceptionWithPrePersist(): void
     {
@@ -112,14 +135,11 @@ class UserEntityEventListenerTest extends KernelTestCase
 
     public function testListenerPreUpdateMethodWorksAsExpected(): void
     {
-        $encoder = $this->encoder;
-
-        $callable = function ($password) use ($encoder) {
-            return $encoder->encodePassword(new SecurityUser($this->entity), $password);
-        };
-
         // Create encrypted password manually for user
-        $this->entity->setPassword($callable, 'test_test');
+        $this->entity->setPassword(
+            fn ($password): string => $this->encoder->encodePassword(new SecurityUser($this->entity), $password),
+            'test_test'
+        );
 
         // Set plain password so that listener can make a real one
         $this->entity->setPlainPassword('test_test_test');
@@ -144,55 +164,5 @@ class UserEntityEventListenerTest extends KernelTestCase
             $this->encoder->isPasswordValid(new SecurityUser($this->entity), 'test_test_test'),
             'Changed password is not valid.'
         );
-    }
-
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        static::bootKernel();
-
-        // Store container and entity manager
-        $this->testContainer = static::$kernel->getContainer();
-
-        /** @noinspection MissingService */
-        $this->entityManager = $this->testContainer->get('doctrine.orm.default_entity_manager');
-
-        $this->encoder = $this->testContainer->get('security.password_encoder');
-
-        // Create listener
-        $this->subscriber = new UserEntityEventListener($this->encoder);
-
-        // Create new user but not store it at this time
-        $this->entity = new User();
-        $this->entity->setUsername('john_doe_the_tester');
-        $this->entity->setEmail('john.doe_the_tester@test.com');
-        $this->entity->setFirstName('John');
-        $this->entity->setLastName('Doe');
-    }
-
-
-    /**
-     * @throws Throwable
-     */
-    public function tearDown(): void
-    {
-        if ($this->entityManager->contains($this->entity)) {
-            $this->entityManager->remove($this->entity);
-            $this->entityManager->flush();
-        }
-
-        $this->entityManager->close();
-        $this->entityManager = null; // avoid memory leaks
-
-        static::$kernel->shutdown();
-
-        parent::tearDown();
-
-        unset($this->entity, $this->subscriber, $this->encoder, $this->entityManager, $this->testContainer);
-
-        gc_collect_cycles();
     }
 }

@@ -8,27 +8,36 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Role;
+use Exception;
 
 /**
  * Class RoleTest
  *
  * @package App\Tests\Integration\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleTest extends EntityTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = Role::class;
+    protected string $entityName = Role::class;
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
      * Generic method to test that getId method returns a string and it is UUID V4 format
      */
-    public function testThatGetIdReturnsUuidString(): void
+    public function testThatGetIdReturnsCorrectUuid(): void
     {
         static::markTestSkipped();
+    }
+
+    /**
+     * @noinspection PhpMissingParentCallCommonInspection
+     *
+     * @throws Exception
+     */
+    protected function getEntity(): EntityInterface
+    {
+        return new $this->entityName('Some role');
     }
 }

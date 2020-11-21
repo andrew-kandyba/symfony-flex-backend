@@ -8,6 +8,9 @@ declare(strict_types = 1);
 
 namespace App\Rest;
 
+use App\Rest\Interfaces\ControllerInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Rest\Traits\Actions\RestActionBase;
 use App\Rest\Traits\RestMethodHelper;
 use UnexpectedValueException;
@@ -16,11 +19,10 @@ use UnexpectedValueException;
  * Class Controller
  *
  * @package App\Rest
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class Controller implements ControllerInterface
 {
-    // Traits
     use RestActionBase;
     use RestMethodHelper;
 
@@ -42,21 +44,9 @@ abstract class Controller implements ControllerInterface
     public const METHOD_PATCH = 'patchMethod';
     public const METHOD_UPDATE = 'updateMethod';
 
-    /**
-     * @var RestResourceInterface|null
-     */
-    protected $resource;
+    protected ?RestResourceInterface $resource = null;
+    protected ?ResponseHandlerInterface $responseHandler = null;
 
-    /**
-     * @var ResponseHandlerInterface|null
-     */
-    protected $responseHandler;
-
-    /**
-     * @return RestResourceInterface
-     *
-     * @throws UnexpectedValueException
-     */
     public function getResource(): RestResourceInterface
     {
         if (!$this->resource instanceof RestResourceInterface) {
@@ -66,11 +56,6 @@ abstract class Controller implements ControllerInterface
         return $this->resource;
     }
 
-    /**
-     * @return ResponseHandlerInterface
-     *
-     * @throws UnexpectedValueException
-     */
     public function getResponseHandler(): ResponseHandlerInterface
     {
         if (!$this->responseHandler instanceof ResponseHandlerInterface) {
@@ -80,15 +65,6 @@ abstract class Controller implements ControllerInterface
         return $this->responseHandler;
     }
 
-    /**
-     * @see https://symfony.com/doc/current/service_container/autowiring.html#autowiring-other-methods-e-g-setters
-     *
-     * @required
-     *
-     * @param ResponseHandler $responseHandler
-     *
-     * @return self
-     */
     public function setResponseHandler(ResponseHandler $responseHandler): self
     {
         $this->responseHandler = $responseHandler;

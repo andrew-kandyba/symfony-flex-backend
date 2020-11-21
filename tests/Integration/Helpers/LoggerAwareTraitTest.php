@@ -18,7 +18,7 @@ use Throwable;
  * Class LoggerAwareTraitTest
  *
  * @package App\Tests\Integration\Helpers
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LoggerAwareTraitTest extends KernelTestCase
 {
@@ -39,7 +39,5 @@ class LoggerAwareTraitTest extends KernelTestCase
         $logger = PhpUnitUtil::getProperty('logger', $service);
 
         static::assertInstanceOf(LoggerInterface::class, $logger);
-
-        unset($service, $logger);
     }
 }

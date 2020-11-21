@@ -8,8 +8,8 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Rest\Traits\Methods;
 
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Tests\Integration\Rest\Traits\Methods\src\IdsMethodInvalidTestClass;
 use App\Tests\Integration\Rest\Traits\Methods\src\IdsMethodTestClass;
 use Exception;
@@ -28,19 +28,19 @@ use Throwable;
  * Class IdsMethodTest
  *
  * @package App\Tests\Integration\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class IdsMethodTest extends KernelTestCase
 {
     /**
      * @throws Throwable
      */
-    public function testThatTraitThrowsAnException():void
+    public function testThatTraitThrowsAnException(): void
     {
         $this->expectException(LogicException::class);
 
-        /** @codingStandardsIgnoreStart */
-        $this->expectExceptionMessageRegExp(
+        /* @codingStandardsIgnoreStart */
+        $this->expectExceptionMessageMatches(
             '/You cannot use (.*) controller class with REST traits if that does not implement (.*)ControllerInterface\'/'
         );
         /** @codingStandardsIgnoreEnd */
@@ -56,9 +56,9 @@ class IdsMethodTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod
      *
-     * @param string $httpMethod
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\IdsMethod` throws an exception with `$httpMethod` HTTP method.
      */
     public function testThatTraitThrowsAnExceptionWithWrongHttpMethod(string $httpMethod): void
     {
@@ -113,11 +113,12 @@ class IdsMethodTest extends KernelTestCase
      * @dataProvider dataProviderTestThatTraitHandlesException
      *
      * @param Exception $exception
-     * @param int       $expectedCode
      *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\IdsMethod` uses `$expectedCode` code on HttpException.
      */
-    public function testThatTraitHandlesException(Exception $exception, int $expectedCode): void
+    public function testThatTraitHandlesException(\Throwable $exception, int $expectedCode): void
     {
         $resource = $this->createMock(RestResourceInterface::class);
         $responseHandler = $this->createMock(ResponseHandlerInterface::class);
@@ -157,7 +158,7 @@ class IdsMethodTest extends KernelTestCase
 
         // Create request and response
         $request = Request::create('/');
-        $response = Response::create('[]');
+        $response = new Response('[]');
 
         $resource
             ->expects(static::once())
@@ -174,9 +175,6 @@ class IdsMethodTest extends KernelTestCase
         $testClass->idsMethod($request);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod(): Generator
     {
         yield ['HEAD'];
@@ -189,9 +187,6 @@ class IdsMethodTest extends KernelTestCase
         yield ['foobar'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitHandlesException(): Generator
     {
         yield [new HttpException(400), 0];

@@ -16,6 +16,7 @@ use Closure;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 use function array_map;
 use function implode;
 use function sprintf;
@@ -24,24 +25,16 @@ use function sprintf;
  * Class ListUserGroupsCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ListUserGroupsCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserGroupResource
-     */
-    private $userGroupResource;
+    private UserGroupResource $userGroupResource;
 
     /**
      * ListUserGroupsCommand constructor.
-     *
-     * @param UserGroupResource $userGroupResource
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserGroupResource $userGroupResource)
     {
@@ -54,18 +47,15 @@ class ListUserGroupsCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
-        static $headers = [
+        $headers = [
             'Id',
             'Name',
             'Role',
@@ -75,13 +65,15 @@ class ListUserGroupsCommand extends Command
         $io->title('Current user groups');
         $io->table($headers, $this->getRows());
 
-        return null;
+        return 0;
     }
 
     /**
      * Getter method for formatted user group rows for console table.
      *
      * @return mixed[]
+     *
+     * @throws Throwable
      */
     private function getRows(): array
     {
@@ -89,37 +81,25 @@ class ListUserGroupsCommand extends Command
     }
 
     /**
-     * Getter method for user group formatter closure. This closure will format single UserGroup entity for console
-     * table.
-     *
-     * @return Closure
+     * Getter method for user group formatter closure. This closure will
+     * format single UserGroup entity for console table.
      */
     private function getFormatterUserGroup(): Closure
     {
-        return function (UserGroup $userGroup): array {
+        $userFormatter = static fn (User $user): string => sprintf(
+            '%s %s <%s>',
+            $user->getFirstName(),
+            $user->getLastName(),
+            $user->getEmail()
+        );
+
+        return static function (UserGroup $userGroup) use ($userFormatter): array {
             return [
                 $userGroup->getId(),
                 $userGroup->getName(),
                 $userGroup->getRole()->getId(),
-                implode(",\n", $userGroup->getUsers()->map($this->getFormatterUser())->toArray()),
+                implode(",\n", $userGroup->getUsers()->map($userFormatter)->toArray()),
             ];
-        };
-    }
-
-    /**
-     * Getter method for user formatter closure. This closure will format single User entity for console table.
-     *
-     * @return Closure
-     */
-    private function getFormatterUser(): Closure
-    {
-        return static function (User $user): string {
-            return sprintf(
-                '%s %s <%s>',
-                $user->getFirstName(),
-                $user->getLastName(),
-                $user->getEmail()
-            );
         };
     }
 }

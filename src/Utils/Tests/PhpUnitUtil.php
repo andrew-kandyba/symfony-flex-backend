@@ -8,7 +8,9 @@ declare(strict_types = 1);
 
 namespace App\Utils\Tests;
 
+use App\Entity\Role;
 use DateTime;
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Type;
 use Exception;
 use LogicException;
@@ -24,6 +26,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Throwable;
+use function array_key_exists;
 use function count;
 use function explode;
 use function get_class;
@@ -35,7 +38,7 @@ use function substr_count;
  * Class PHPUnitUtil
  *
  * @package App\Utils\Tests
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class PhpUnitUtil
 {
@@ -48,9 +51,17 @@ class PhpUnitUtil
     public const TYPE_CUSTOM_CLASS = 'CustomClass';
 
     /**
+     * @var array<string, mixed>
+     */
+    private static array $validValueCache = [];
+
+    /**
+     * @var array<string, stdClass|DateTime|string>
+     */
+    private static array $invalidValueCache = [];
+
+    /**
      * @codeCoverageIgnore
-     *
-     * @param KernelInterface $kernel
      *
      * @throws Exception
      */
@@ -73,16 +84,14 @@ class PhpUnitUtil
     /**
      * @codeCoverageIgnore
      *
-     * @param string $folder
-     * @param string $pattern
-     *
-     * @return string[]
+     * @return array<int, string>
      */
     public static function recursiveFileSearch(string $folder, string $pattern): array
     {
         $dir = new RecursiveDirectoryIterator($folder);
         $ite = new RecursiveIteratorIterator($dir);
 
+        /** @var array<int, string> $files */
         $files = new RegexIterator($ite, $pattern, RegexIterator::GET_MATCH);
         $fileList = [];
 
@@ -96,9 +105,9 @@ class PhpUnitUtil
     /**
      * Method to call specified 'protected' or 'private' method on given class.
      *
-     * @param mixed   $object The instantiated instance of your class
-     * @param string  $name   The name of your private/protected method
-     * @param mixed[] $args   Method arguments
+     * @param object $object The instantiated instance of your class
+     * @param string $name The name of your private/protected method
+     * @param array<int, mixed> $args Method arguments
      *
      * @return mixed
      *
@@ -116,8 +125,8 @@ class PhpUnitUtil
      *      $foo = PHPUnitUtil::getPrivateMethod($cls, 'foo');
      *      $foo->invoke($cls, $...);
      *
-     * @param mixed  $object The instantiated instance of your class
-     * @param string $name   The name of your private/protected method
+     * @param object $object The instantiated instance of your class
+     * @param string $name The name of your private/protected method
      *
      * @return ReflectionMethod The method you asked for
      *
@@ -136,8 +145,7 @@ class PhpUnitUtil
     /**
      * Helper method to get any property value from given class.
      *
-     * @param string $property
-     * @param mixed  $object
+     * @param object $object
      *
      * @return mixed
      *
@@ -147,7 +155,6 @@ class PhpUnitUtil
     {
         $clazz = new ReflectionClass(get_class($object));
 
-        /** @noinspection CallableParameterUseCaseInTypeContextInspection */
         $property = $clazz->getProperty($property);
         $property->setAccessible(true);
 
@@ -156,8 +163,6 @@ class PhpUnitUtil
 
     /**
      * @param Type|string|null $type
-     *
-     * @return string
      */
     public static function getType($type): string
     {
@@ -172,8 +177,15 @@ class PhpUnitUtil
             case 'datetime':
                 $output = DateTime::class;
                 break;
+            case 'time_immutable':
+            case 'date_immutable':
+            case 'datetime_immutable':
+                $output = DateTimeImmutable::class;
+                break;
             case 'text':
             case self::TYPE_STRING:
+            case 'EnumLanguage':
+            case 'EnumLocale':
             case 'EnumLogLogin':
                 $output = self::TYPE_STRING;
                 break;
@@ -199,9 +211,8 @@ class PhpUnitUtil
     /**
      * Helper method to override any property value within given class.
      *
-     * @param string $property
-     * @param mixed  $value
-     * @param mixed  $object
+     * @param mixed $value
+     * @param object $object
      *
      * @throws ReflectionException
      */
@@ -209,7 +220,6 @@ class PhpUnitUtil
     {
         $clazz = new ReflectionClass(get_class($object));
 
-        /** @noinspection CallableParameterUseCaseInTypeContextInspection */
         $property = $clazz->getProperty($property);
         $property->setAccessible(true);
         $property->setValue($object, $value);
@@ -218,8 +228,7 @@ class PhpUnitUtil
     /**
      * Helper method to get valid value for specified type.
      *
-     * @param string       $type
-     * @param mixed[]|null $meta
+     * @param array<string, string>|null $meta
      *
      * @return mixed
      *
@@ -227,62 +236,77 @@ class PhpUnitUtil
      */
     public static function getValidValueForType(string $type, ?array $meta = null)
     {
-        $meta = $meta ?? [];
+        $cacheKey = $type . serialize($meta);
 
-        $class = stdClass::class;
+        if (!array_key_exists($cacheKey, self::$validValueCache)) {
+            $meta ??= [];
 
-        if (substr_count($type, '\\') > 1 && strpos($type, '|') === false) {
-            $class = count($meta) ? $meta['targetEntity'] : $type;
+            $class = stdClass::class;
+            $params = [null];
 
-            $type = self::TYPE_CUSTOM_CLASS;
-        }
+            if (substr_count($type, '\\') > 1 && strpos($type, '|') === false) {
+                /** @var class-string $class */
+                $class = count($meta) ? $meta['targetEntity'] : $type;
 
-        if (strpos($type, '|') !== false) {
-            $output = self::getValidValueForType(explode('|', $type)[0], $meta);
-        } elseif (strpos($type, '[]') !== false) {
-            $output = self::getValidValueForType(self::TYPE_ARRAY, $meta);
-        } else {
-            switch ($type) {
-                case self::TYPE_CUSTOM_CLASS:
-                    $output = new $class();
-                    break;
-                case self::TYPE_INT:
-                case self::TYPE_INTEGER:
-                    $output = 666;
-                    break;
-                case DateTime::class:
-                    /** @noinspection PhpUnhandledExceptionInspection */
-                    $output = new DateTime();
-                    break;
-                case self::TYPE_STRING:
-                    $output = 'Some text here';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output = ['some', self::TYPE_ARRAY, 'here'];
-                    break;
-                case self::TYPE_BOOL:
-                case self::TYPE_BOOLEAN:
-                    $output = true;
-                    break;
-                default:
-                    $message = sprintf(
-                        "Cannot create valid value for type '%s'.",
-                        $type
-                    );
+                $type = self::TYPE_CUSTOM_CLASS;
 
-                    throw new LogicException($message);
+                $cleanClass = $class[0] === '\\' ? ltrim($class, '\\') : $class;
+
+                if ($cleanClass === Role::class) {
+                    $params = ['Some Role'];
+                }
             }
+
+            if (strpos($type, '|') !== false) {
+                $output = self::getValidValueForType(explode('|', $type)[0], $meta);
+            } elseif (strpos($type, '[]') !== false) {
+                /** @var array<mixed, object> $output */
+                $output = self::getValidValueForType(self::TYPE_ARRAY, $meta);
+            } else {
+                switch ($type) {
+                    case self::TYPE_CUSTOM_CLASS:
+                        $output = new $class(...$params);
+                        break;
+                    case self::TYPE_INT:
+                    case self::TYPE_INTEGER:
+                        $output = 666;
+                        break;
+                    case DateTime::class:
+                        $output = new DateTime();
+                        break;
+                    case DateTimeImmutable::class:
+                        $output = new DateTimeImmutable();
+                        break;
+                    case self::TYPE_STRING:
+                        $output = 'Some text here';
+                        break;
+                    case self::TYPE_ARRAY:
+                        $output = ['some', self::TYPE_ARRAY, 'here'];
+                        break;
+                    case self::TYPE_BOOL:
+                    case self::TYPE_BOOLEAN:
+                        $output = true;
+                        break;
+                    default:
+                        $message = sprintf(
+                            "Cannot create valid value for type '%s'.",
+                            $type
+                        );
+
+                        throw new LogicException($message);
+                }
+            }
+
+            self::$validValueCache[$cacheKey] = $output;
         }
 
-        return $output;
+        return self::$validValueCache[$cacheKey];
     }
 
     /**
      * Helper method to get invalid value for specified type.
      *
-     * @param string $type
-     *
-     * @return mixed
+     * @return stdClass|DateTime|string
      *
      * @throws Throwable
      */
@@ -292,35 +316,43 @@ class PhpUnitUtil
             $type = self::TYPE_CUSTOM_CLASS;
         }
 
-        if (strpos($type, '|') !== false) {
-            $output = self::getInvalidValueForType(explode('|', $type)[0]);
-        } elseif (strpos($type, '[]') !== false) {
-            $output = self::getInvalidValueForType(self::TYPE_ARRAY);
-        } else {
-            switch ($type) {
-                case stdClass::class:
-                    $output = new DateTime();
-                    break;
-                case self::TYPE_CUSTOM_CLASS:
-                case self::TYPE_INTEGER:
-                case DateTime::class:
-                case self::TYPE_STRING:
-                case self::TYPE_ARRAY:
-                case self::TYPE_BOOL:
-                case self::TYPE_BOOLEAN:
-                case 'enumLogLogin':
-                    $output = new stdClass();
-                    break;
-                default:
-                    $message = sprintf(
-                        "Cannot create invalid value for type '%s'.",
-                        $type
-                    );
+        if (!array_key_exists($type, self::$invalidValueCache)) {
+            if (strpos($type, '|') !== false) {
+                $output = self::getInvalidValueForType(explode('|', $type)[0]);
+            } elseif (strpos($type, '[]') !== false) {
+                $output = self::getInvalidValueForType(self::TYPE_ARRAY);
+            } else {
+                switch ($type) {
+                    case stdClass::class:
+                    case DateTimeImmutable::class:
+                        $output = new DateTime();
+                        break;
+                    case self::TYPE_CUSTOM_CLASS:
+                    case self::TYPE_INT:
+                    case self::TYPE_INTEGER:
+                    case DateTime::class:
+                    case self::TYPE_STRING:
+                    case self::TYPE_ARRAY:
+                    case self::TYPE_BOOL:
+                    case self::TYPE_BOOLEAN:
+                    case 'enumLanguage':
+                    case 'enumLocale':
+                    case 'enumLogLogin':
+                        $output = new stdClass();
+                        break;
+                    default:
+                        $message = sprintf(
+                            "Cannot create invalid value for type '%s'.",
+                            $type
+                        );
 
-                    throw new LogicException($message);
+                        throw new LogicException($message);
+                }
             }
+
+            self::$invalidValueCache[$type] = $output;
         }
 
-        return $output;
+        return self::$invalidValueCache[$type];
     }
 }

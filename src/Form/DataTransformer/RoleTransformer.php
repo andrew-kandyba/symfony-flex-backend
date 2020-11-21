@@ -12,24 +12,21 @@ use App\Entity\Role;
 use App\Resource\RoleResource;
 use Symfony\Component\Form\DataTransformerInterface;
 use Symfony\Component\Form\Exception\TransformationFailedException;
+use Throwable;
+use function sprintf;
 
 /**
  * Class RoleTransformer
  *
  * @package App\Form\Console\DataTransformer
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleTransformer implements DataTransformerInterface
 {
-    /**
-     * @var RoleResource
-     */
-    private $resource;
+    private RoleResource $resource;
 
     /**
      * RoleTransformer constructor.
-     *
-     * @param RoleResource $resource
      */
     public function __construct(RoleResource $resource)
     {
@@ -39,9 +36,7 @@ class RoleTransformer implements DataTransformerInterface
     /**
      * Transforms an object (Role) to a string (Role id).
      *
-     * @param Role|mixed|null $role
-     *
-     * @return string
+     * @param Role|mixed $role
      */
     public function transform($role): string
     {
@@ -51,25 +46,26 @@ class RoleTransformer implements DataTransformerInterface
     /**
      * Transforms a string (Role id) to an object (Role).
      *
-     * @param string|mixed|null $roleName
+     * @param string|mixed $roleName
      *
-     * @return Role|null
-     *
-     * @throws TransformationFailedException if object (issue) is not found.
+     * @throws TransformationFailedException if object (issue) is not found
+     * @throws Throwable
      */
     public function reverseTransform($roleName): ?Role
     {
+        $role = null;
+
         if ($roleName !== null) {
-            $role = $this->resource->findOne($roleName);
+            $role = $this->resource->findOne((string)$roleName, false);
 
             if ($role === null) {
-                throw new TransformationFailedException(\sprintf(
+                throw new TransformationFailedException(sprintf(
                     'Role with name "%s" does not exist!',
-                    $roleName
+                    (string)$roleName
                 ));
             }
         }
 
-        return $role ?? null;
+        return $role;
     }
 }

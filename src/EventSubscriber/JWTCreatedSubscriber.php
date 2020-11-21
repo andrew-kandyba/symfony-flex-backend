@@ -8,13 +8,16 @@ declare(strict_types = 1);
 
 namespace App\EventSubscriber;
 
-use App\Helpers\LoggerAwareTrait;
+use App\Security\SecurityUser;
+use App\Service\Localization;
 use DateTime;
 use DateTimeZone;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTCreatedEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Events;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\User\UserInterface;
 use function hash;
 use function implode;
 
@@ -22,49 +25,31 @@ use function implode;
  * Class JWTCreatedSubscriber
  *
  * @package App\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class JWTCreatedSubscriber implements EventSubscriberInterface
 {
-    // Traits
-    use LoggerAwareTrait;
-
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
+    private RequestStack $requestStack;
+    private LoggerInterface $logger;
 
     /**
      * JWTCreatedListener constructor.
-     *
-     * @param RequestStack $requestStack
      */
-    public function __construct(RequestStack $requestStack)
+    public function __construct(RequestStack $requestStack, LoggerInterface $logger)
     {
         $this->requestStack = $requestStack;
+        $this->logger = $logger;
     }
 
     /**
-     * Returns an array of event names this subscriber wants to listen to.
+     * {@inheritdoc}
      *
-     * The array keys are event names and the value can be:
-     *
-     *  * The method name to call (priority defaults to 0)
-     *  * An array composed of the method name to call and the priority
-     *  * An array of arrays composed of the method names to call and respective
-     *    priorities, or 0 if unset
-     *
-     * For instance:
-     *
-     *  * array('eventName' => 'methodName')
-     *  * array('eventName' => array('methodName', $priority))
-     *  * array('eventName' => array(array('methodName1', $priority), array('methodName2')))
-     *
-     * @return mixed[] The event names to listen to
+     * @return array<string, string>
      */
     public static function getSubscribedEvents(): array
     {
         return [
+            JWTCreatedEvent::class => 'onJWTCreated',
             Events::JWT_CREATED => 'onJWTCreated',
         ];
     }
@@ -72,16 +57,16 @@ class JWTCreatedSubscriber implements EventSubscriberInterface
     /**
      * Subscriber method to attach some custom data to current JWT payload.
      *
-     * This method is called when 'lexik_jwt_authentication.on_jwt_created' event is broadcast.
-     *
-     * @psalm-suppress MissingDependency
-     *
-     * @param JWTCreatedEvent $event
+     * This method is called when following event is broadcast;
+     *  - lexik_jwt_authentication.on_jwt_created
      */
     public function onJWTCreated(JWTCreatedEvent $event): void
     {
         // Get current original payload
         $payload = $event->getData();
+
+        // Set localization data
+        $this->setLocalizationData($payload, $event->getUser());
 
         // Update JWT expiration data
         $this->setExpiration($payload);
@@ -93,16 +78,23 @@ class JWTCreatedSubscriber implements EventSubscriberInterface
         $event->setData($payload);
     }
 
+    private function setLocalizationData(array &$payload, UserInterface $user): void
+    {
+        $payload['language'] = $user instanceof SecurityUser ? $user->getLanguage() : Localization::DEFAULT_LANGUAGE;
+        $payload['locale'] = $user instanceof SecurityUser ? $user->getLocale() : Localization::DEFAULT_LOCALE;
+        $payload['timezone'] = $user instanceof SecurityUser ? $user->getTimezone() : Localization::DEFAULT_TIMEZONE;
+    }
+
     /** @noinspection PhpDocMissingThrowsInspection */
     /**
      * Method to set/modify JWT expiration date dynamically.
      *
-     * @param mixed[] $payload
+     * @param array<string, string|int> $payload
      */
     private function setExpiration(array &$payload): void
     {
         // Set new exp value for JWT
-        /** @noinspection PhpUnhandledExceptionInspection */
+        /* @noinspection PhpUnhandledExceptionInspection */
         $payload['exp'] = (new DateTime('+1 day', new DateTimeZone('UTC')))->getTimestamp();
     }
 
@@ -111,7 +103,7 @@ class JWTCreatedSubscriber implements EventSubscriberInterface
      *
      * @see JWTDecodedListener
      *
-     * @param mixed[] $payload
+     * @param array<string, string|int> $payload
      */
     private function setSecurityData(array &$payload): void
     {

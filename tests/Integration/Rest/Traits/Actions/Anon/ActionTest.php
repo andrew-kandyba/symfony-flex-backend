@@ -12,7 +12,6 @@ use App\DTO\RestDtoInterface;
 use App\Utils\Tests\PhpUnitUtil;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -26,19 +25,16 @@ use const DIRECTORY_SEPARATOR;
  * Class ActionTest
  *
  * @package App\Tests\Integration\Rest\Traits\Actions\Anon
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ActionTest extends KernelTestCase
 {
     /**
      * @dataProvider dataProviderTestThatTraitCallsExpectedMethod
      *
-     * @param string $className
-     * @param string $method
-     * @param string $traitMethod
-     * @param array  $parameters
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `$method` method call trigger `$traitMethod` method call in `$className` trait.
      */
     public function testThatTraitCallsExpectedMethod(
         string $className,
@@ -66,9 +62,6 @@ class ActionTest extends KernelTestCase
         static::assertInstanceOf(Response::class, $result);
     }
 
-    /**
-     * @return array
-     */
     public function dataProviderTestThatTraitCallsExpectedMethod(): array
     {
         static::bootKernel();

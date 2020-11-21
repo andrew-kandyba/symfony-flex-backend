@@ -16,31 +16,27 @@ use App\Form\Type\Traits\AddBasicFieldToForm;
 use App\Resource\RoleResource;
 use App\Security\RolesService;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Exception\InvalidArgumentException;
 use Symfony\Component\Form\Extension\Core\Type;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\Exception\AccessException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Throwable;
 
-/** @noinspection EmptyClassInspection */
 /**
  * Class UserGroupType
  *
  * @package App\Form\Type\Console
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserGroupType extends AbstractType
 {
-    // Traits
     use AddBasicFieldToForm;
 
     /**
      * Base form fields
      *
-     * @var mixed[]
+     * @var array<int, array<int, mixed>>
      */
-    private static $formFields = [
+    private static array $formFields = [
         [
             'name',
             Type\TextType::class,
@@ -52,27 +48,12 @@ class UserGroupType extends AbstractType
         ],
     ];
 
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
-
-    /**
-     * @var RoleResource
-     */
-    private $roleResource;
-
-    /**
-     * @var RoleTransformer
-     */
-    private $roleTransformer;
+    private RolesService $rolesService;
+    private RoleResource $roleResource;
+    private RoleTransformer $roleTransformer;
 
     /**
      * UserGroupType constructor.
-     *
-     * @param RolesService    $rolesService
-     * @param RoleResource    $roleResource
-     * @param RoleTransformer $roleTransformer
      */
     public function __construct(
         RolesService $rolesService,
@@ -85,12 +66,8 @@ class UserGroupType extends AbstractType
     }
 
     /**
-     * @SuppressWarnings("unused")
+     * {@inheritdoc}
      *
-     * @param FormBuilderInterface $builder
-     * @param mixed[]              $options
-     *
-     * @throws InvalidArgumentException
      * @throws Throwable
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -113,13 +90,6 @@ class UserGroupType extends AbstractType
         $builder->get('role')->addModelTransformer($this->roleTransformer);
     }
 
-    /**
-     * Configures the options for this type.
-     *
-     * @param OptionsResolver $resolver The resolver for the options
-     *
-     * @throws AccessException
-     */
     public function configureOptions(OptionsResolver $resolver): void
     {
         parent::configureOptions($resolver);
@@ -130,9 +100,9 @@ class UserGroupType extends AbstractType
     }
 
     /**
-     * Method to  choices array for user groups.
+     * Method to get choices array for user groups.
      *
-     * @return mixed[]
+     * @return array<string, string>
      *
      * @throws Throwable
      */
@@ -147,7 +117,6 @@ class UserGroupType extends AbstractType
             $choices[$name] = $role->getId();
         };
 
-        /** @var RoleEntity[] $roles */
         $roles = $this->roleResource->find();
 
         array_map($iterator, $roles);

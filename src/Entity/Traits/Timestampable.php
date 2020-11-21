@@ -8,8 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Entity\Traits;
 
-use App\Entity\EntityInterface;
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -18,92 +17,66 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * Trait Timestampable
  *
  * @package App\Entity\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait Timestampable
 {
     /**
-     * @var DateTime|null
-     *
      * @Gedmo\Timestampable(on="create")
      *
      * @Groups({
-     *     "Role.createdAt",
-     *     "User.createdAt",
-     *     "UserGroup.createdAt",
+     *      "ApiKey.createdAt",
+     *      "Role.createdAt",
+     *      "User.createdAt",
+     *      "UserGroup.createdAt",
      *  })
      *
      * @ORM\Column(
      *      name="created_at",
-     *      type="datetime",
+     *      type="datetime_immutable",
      *      nullable=true,
      *  )
      */
-    protected $createdAt;
+    protected ?DateTimeImmutable $createdAt = null;
 
     /**
-     * @var DateTime|null
-     *
      * @Gedmo\Timestampable(on="update")
      *
      * @Groups({
-     *     "Role.updatedAt",
-     *     "User.updatedAt",
-     *     "UserGroup.updatedAt",
+     *      "ApiKey.updatedAt",
+     *      "Role.updatedAt",
+     *      "User.updatedAt",
+     *      "UserGroup.updatedAt",
      *  })
      *
      * @ORM\Column(
      *      name="updated_at",
-     *      type="datetime",
+     *      type="datetime_immutable",
      *      nullable=true,
      *  )
      */
-    protected $updatedAt;
+    protected ?DateTimeImmutable $updatedAt = null;
 
-    /**
-     * Sets createdAt.
-     *
-     * @param DateTime $createdAt
-     *
-     * @return EntityInterface|$this
-     */
-    public function setCreatedAt(DateTime $createdAt)
+    public function setCreatedAt(DateTimeImmutable $createdAt): self
     {
         $this->createdAt = $createdAt;
 
         return $this;
     }
 
-    /**
-     * Returns createdAt.
-     *
-     * @return DateTime|null
-     */
-    public function getCreatedAt(): ?DateTime
+    public function getCreatedAt(): ?DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    /**
-     * Sets updatedAt.
-     *
-     * @param DateTime $updatedAt
-     *
-     * @return EntityInterface|$this
-     */
-    public function setUpdatedAt(DateTime $updatedAt)
+    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    /**
-     * Returns updatedAt.
-     *
-     * @return DateTime|null
-     */
-    public function getUpdatedAt(): ?DateTime
+    public function getUpdatedAt(): ?DateTimeImmutable
     {
         return $this->updatedAt;
     }

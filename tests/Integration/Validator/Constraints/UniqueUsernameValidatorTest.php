@@ -22,14 +22,11 @@ use Throwable;
  * Class UniqueUsernameValidatorTest
  *
  * @package App\Tests\Integration\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UniqueUsernameValidatorTest extends KernelTestCase
 {
-    /**
-     * @var UniqueUsername
-     */
-    private $constraint;
+    private UniqueUsername $constraint;
 
     /**
      * @var MockObject|ExecutionContext
@@ -41,7 +38,18 @@ class UniqueUsernameValidatorTest extends KernelTestCase
      */
     private $builder;
 
-    /** @noinspection PhpFullyQualifiedNameUsageInspection */
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->constraint = new UniqueUsername();
+        $this->context = $this->getMockBuilder(ExecutionContext::class)->disableOriginalConstructor()->getMock();
+        $this->builder = $this->getMockBuilder(ConstraintViolationBuilderInterface::class)->getMock();
+    }
+
     /**
      * @throws \Doctrine\ORM\NonUniqueResultException
      *
@@ -50,13 +58,15 @@ class UniqueUsernameValidatorTest extends KernelTestCase
     public function testThatValidateCallsExpectedMethods(): void
     {
         // Create new user
-        $user = new User();
-        $user->setUsername('john');
+        $user = (new User())
+            ->setUsername('john');
 
         /**
          * @var MockObject|UserRepository $repository
          */
-        $repository = $this->getMockBuilder(UserRepository::class)->disableOriginalConstructor()->getMock();
+        $repository = $this->getMockBuilder(UserRepository::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
         $repository
             ->expects(static::once())
@@ -84,26 +94,5 @@ class UniqueUsernameValidatorTest extends KernelTestCase
         $validator = new UniqueUsernameValidator($repository);
         $validator->initialize($this->context);
         $validator->validate($user, $this->constraint);
-
-        unset($validator, $repository, $user);
-    }
-
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->constraint = new UniqueUsername();
-        $this->context = $this->getMockBuilder(ExecutionContext::class)->disableOriginalConstructor()->getMock();
-        $this->builder = $this->getMockBuilder(ConstraintViolationBuilderInterface::class)->getMock();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->constraint, $this->context, $this->builder);
     }
 }

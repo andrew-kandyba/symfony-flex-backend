@@ -9,54 +9,32 @@ declare(strict_types = 1);
 namespace App\DataFixtures\ORM;
 
 use App\Entity\Role;
-use App\Security\RolesServiceInterface;
-use BadMethodCallException;
+use App\Security\Interfaces\RolesServiceInterface;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
-use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+use Throwable;
 use function array_map;
 
 /**
  * Class LoadRoleData
  *
  * @package App\DataFixtures\ORM
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ *
+ * @psalm-suppress MissingConstructor
  */
 final class LoadRoleData extends Fixture implements OrderedFixtureInterface, ContainerAwareInterface
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    use ContainerAwareTrait;
 
-    /**
-     * @var ObjectManager
-     */
-    private $manager;
-
-    /**
-     * @var RolesServiceInterface
-     */
-    private $roles;
-
-    /**
-     * Setter for container.
-     *
-     * @param ContainerInterface|null $container
-     */
-    public function setContainer(?ContainerInterface $container = null): void
-    {
-        if ($container !== null) {
-            $this->container = $container;
-        }
-    }
+    private ObjectManager $manager;
+    private RolesServiceInterface $roles;
 
     /**
      * Load data fixtures with the passed EntityManager
-     *
-     * @param ObjectManager $manager
      */
     public function load(ObjectManager $manager): void
     {
@@ -66,12 +44,8 @@ final class LoadRoleData extends Fixture implements OrderedFixtureInterface, Con
         $this->roles = $rolesService;
         $this->manager = $manager;
 
-        $iterator = function (string $role): void {
-            $this->createRole($role);
-        };
-
         // Create entities
-        array_map($iterator, $this->roles->getRoles());
+        array_map(fn (string $role): bool => $this->createRole($role), $this->roles->getRoles());
 
         // Flush database changes
         $this->manager->flush();
@@ -79,8 +53,6 @@ final class LoadRoleData extends Fixture implements OrderedFixtureInterface, Con
 
     /**
      * Get the order of this fixture
-     *
-     * @return int
      */
     public function getOrder(): int
     {
@@ -90,11 +62,9 @@ final class LoadRoleData extends Fixture implements OrderedFixtureInterface, Con
     /**
      * Method to create, persist and flush Role entity to database.
      *
-     * @param string $role
-     *
-     * @throws BadMethodCallException
+     * @throws Throwable
      */
-    private function createRole(string $role): void
+    private function createRole(string $role): bool
     {
         // Create new Role entity
         $entity = new Role($role);
@@ -105,5 +75,7 @@ final class LoadRoleData extends Fixture implements OrderedFixtureInterface, Con
 
         // Create reference for later usage
         $this->addReference('Role-' . $this->roles->getShort($role), $entity);
+
+        return true;
     }
 }

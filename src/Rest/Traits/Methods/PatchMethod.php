@@ -17,22 +17,14 @@ use Throwable;
  * Trait PatchMethod
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait PatchMethod
 {
-    // Traits
-    use AbstractGenericMethods;
-
     /**
      * Generic 'patchMethod' method for REST resources.
      *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     * @param string           $id
-     * @param string[]|null    $allowedHttpMethods
-     *
-     * @return Response
+     * @param array<int, string>|null $allowedHttpMethods
      *
      * @throws Throwable
      */
@@ -42,7 +34,7 @@ trait PatchMethod
         string $id,
         ?array $allowedHttpMethods = null
     ): Response {
-        $resource = $this->validateRestMethodAndGetResource($request, $allowedHttpMethods ?? ['PATCH']);
+        $resource = $this->getResourceForMethod($request, $allowedHttpMethods ?? ['PATCH']);
 
         try {
             $data = $resource->patch($id, $restDto, true);

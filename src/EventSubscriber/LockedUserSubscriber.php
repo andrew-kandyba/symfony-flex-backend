@@ -16,7 +16,6 @@ use App\Security\SecurityUser;
 use Doctrine\ORM\ORMException;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationFailureEvent;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
-use Lexik\Bundle\JWTAuthenticationBundle\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Security\Core\Exception\LockedException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -28,25 +27,15 @@ use function is_string;
  * Class LockedUserSubscriber
  *
  * @package App\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LockedUserSubscriber implements EventSubscriberInterface
 {
-    /**
-     * @var UserRepository
-     */
-    private $userRepository;
-
-    /**
-     * @var LogLoginFailureResource
-     */
-    private $logLoginFailureResource;
+    private UserRepository $userRepository;
+    private LogLoginFailureResource $logLoginFailureResource;
 
     /**
      * LockedUserSubscriber constructor.
-     *
-     * @param UserRepository          $userRepository
-     * @param LogLoginFailureResource $logLoginFailureResource
      */
     public function __construct(UserRepository $userRepository, LogLoginFailureResource $logLoginFailureResource)
     {
@@ -55,38 +44,23 @@ class LockedUserSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Returns an array of event names this subscriber wants to listen to.
+     * {@inheritdoc}
      *
-     * The array keys are event names and the value can be:
-     *
-     *  * The method name to call (priority defaults to 0)
-     *  * An array composed of the method name to call and the priority
-     *  * An array of arrays composed of the method names to call and respective
-     *    priorities, or 0 if unset
-     *
-     * For instance:
-     *
-     *  * array('eventName' => 'methodName')
-     *  * array('eventName' => array('methodName', $priority))
-     *  * array('eventName' => array(array('methodName1', $priority), array('methodName2')))
-     *
-     * @return mixed[] The event names to listen to
+     * @return array<string, string|array<int, string|int>>
      */
     public static function getSubscribedEvents(): array
     {
         return [
-            Events::AUTHENTICATION_SUCCESS => [
+            AuthenticationSuccessEvent::class => [
                 'onAuthenticationSuccess',
                 128,
             ],
-            Events::AUTHENTICATION_FAILURE => 'onAuthenticationFailure',
+            AuthenticationFailureEvent::class => 'onAuthenticationFailure',
         ];
     }
 
     /**
-     * @param AuthenticationSuccessEvent $event
-     *
-     * @throws ORMException
+     * @throws Throwable
      */
     public function onAuthenticationSuccess(AuthenticationSuccessEvent $event): void
     {
@@ -104,8 +78,6 @@ class LockedUserSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param AuthenticationFailureEvent $event
-     *
      * @throws Throwable
      */
     public function onAuthenticationFailure(AuthenticationFailureEvent $event): void
@@ -126,8 +98,6 @@ class LockedUserSubscriber implements EventSubscriberInterface
     /**
      * @param string|object $user
      *
-     * @return User|null
-     *
      * @throws ORMException
      */
     private function getUser($user): ?User
@@ -135,9 +105,9 @@ class LockedUserSubscriber implements EventSubscriberInterface
         $output = null;
 
         if (is_string($user)) {
-            $output = $this->userRepository->loadUserByUsername($user);
+            $output = $this->userRepository->loadUserByUsername($user, false);
         } elseif ($user instanceof SecurityUser) {
-            $output = $this->userRepository->loadUserByUsername($user->getUsername());
+            $output = $this->userRepository->loadUserByUsername($user->getUsername(), true);
         }
 
         return $output;

@@ -8,7 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Resource;
 
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use function sprintf;
 
@@ -16,29 +16,24 @@ use function sprintf;
  * Class ResourceTestCase
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class ResourceTestCase extends KernelTestCase
 {
-    /**
-     * @var string
-     */
-    protected $resourceClass;
+    protected string $resourceClass;
+    protected string $repositoryClass;
+    protected string $entityClass;
+    protected RestResourceInterface $resource;
 
-    /**
-     * @var string
-     */
-    protected $repositoryClass;
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-    /**
-     * @var string
-     */
-    protected $entityClass;
+        static::bootKernel();
 
-    /**
-     * @var RestResourceInterface
-     */
-    protected $resource;
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->resource = static::$container->get($this->resourceClass);
+    }
 
     public function testThatGetRepositoryReturnsExpected(): void
     {
@@ -59,25 +54,5 @@ abstract class ResourceTestCase extends KernelTestCase
         );
 
         static::assertSame($this->entityClass, $this->resource->getEntityName(), $message);
-    }
-
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->resource = static::$container->get($this->resourceClass);
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->resource);
-
-        gc_collect_cycles();
     }
 }

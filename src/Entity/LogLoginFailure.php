@@ -8,10 +8,13 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
-use DateTime;
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Traits\Uuid;
+use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Throwable;
 
@@ -21,7 +24,7 @@ use Throwable;
  * @ORM\Table(
  *      name="log_login_failure",
  *      indexes={
- *          @ORM\Index(name="user_id", columns={"user_id"}),
+ * @ORM\Index(name="user_id", columns={"user_id"}),
  *      }
  *  )
  * @ORM\Entity(
@@ -29,13 +32,13 @@ use Throwable;
  *  )
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogLoginFailure implements EntityInterface
 {
+    use Uuid;
+
     /**
-     * @var string
-     *
      * @Groups({
      *      "LogLoginFailure",
      *      "LogLoginFailure.id",
@@ -43,16 +46,17 @@ class LogLoginFailure implements EntityInterface
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
-     *      nullable=false
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
+     *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var User
-     *
      * @Groups({
      *      "LogLoginFailure",
      *      "LogLoginFailure.user",
@@ -63,18 +67,16 @@ class LogLoginFailure implements EntityInterface
      *      inversedBy="logsLoginFailure",
      *  )
      * @ORM\JoinColumns({
-     *      @ORM\JoinColumn(
+     * @ORM\JoinColumn(
      *          name="user_id",
      *          referencedColumnName="id",
      *          nullable=false,
      *      ),
      *  })
      */
-    private $user;
+    private User $user;
 
     /**
-     * @var DateTime
-     *
      * @Groups({
      *      "LogLoginFailure",
      *      "LogLoginFailure.timestamp",
@@ -82,56 +84,40 @@ class LogLoginFailure implements EntityInterface
      *
      * @ORM\Column(
      *      name="timestamp",
-     *      type="datetime",
+     *      type="datetime_immutable",
      *      nullable=false,
      *  )
      */
-    private $timestamp;
+    private DateTimeImmutable $timestamp;
 
     /**
      * LogLoginFailure constructor.
-     *
-     * @param User $user
      *
      * @throws Throwable
      */
     public function __construct(User $user)
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
         $this->user = $user;
-        $this->timestamp = new DateTime('NOW', new DateTimeZone('UTC'));
+        $this->timestamp = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return User
-     */
     public function getUser(): User
     {
         return $this->user;
     }
 
-    /**
-     * @return DateTime
-     */
-    public function getTimestamp(): DateTime
+    public function getTimestamp(): DateTimeImmutable
     {
         return $this->getCreatedAt();
     }
 
-    /**
-     * Returns createdAt.
-     *
-     * @return DateTime
-     */
-    public function getCreatedAt(): DateTime
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->timestamp;
     }

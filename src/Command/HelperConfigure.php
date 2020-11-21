@@ -13,19 +13,19 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
+use function array_key_exists;
 use function array_map;
 
 /**
  * Class HelperConfigure
  *
  * @package App\Command
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class HelperConfigure
 {
     /**
-     * @param Command $command
-     * @param mixed[] $parameters
+     * @param array<int, array<string, int|string>> $parameters
      *
      * @throws InvalidArgumentException
      */
@@ -36,27 +36,18 @@ class HelperConfigure
     }
 
     /**
-     * @return Closure
-     *
      * @throws InvalidArgumentException
      */
     private static function getParameterIterator(): Closure
     {
-        /**
-         * Lambda iterator function to parse specified inputs.
-         *
-         * @param array $input
-         *
-         * @return InputOption
-         */
         return static function (array $input): InputOption {
-            return new InputOption(
-                $input['name'],
-                $input['shortcut'] ?? null,
-                $input['mode'] ?? InputOption::VALUE_OPTIONAL,
-                $input['description'] ?? '',
-                $input['default'] ?? null
-            );
+            $name = (string)$input['name'];
+            $shortcut = array_key_exists('shortcut', $input) ? (string)$input['shortcut'] : null;
+            $mode = array_key_exists('mode', $input) ? (int)$input['mode'] : InputOption::VALUE_OPTIONAL;
+            $description = array_key_exists('description', $input) ? (string)$input['description'] : '';
+            $default = array_key_exists('default', $input) ? (string)$input['default'] : null;
+
+            return new InputOption($name, $shortcut, $mode, $description, $default);
         };
     }
 }

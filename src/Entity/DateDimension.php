@@ -8,10 +8,14 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Traits\Uuid;
 use DateTime;
+use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Throwable;
 use function floor;
@@ -22,7 +26,7 @@ use function floor;
  * @ORM\Table(
  *      name="date_dimension",
  *      indexes={
- *          @ORM\Index(name="date", columns={"date"}),
+ * @ORM\Index(name="date", columns={"date"}),
  *      }
  *  )
  * @ORM\Entity(
@@ -30,13 +34,13 @@ use function floor;
  *  )
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class DateDimension implements EntityInterface
 {
+    use Uuid;
+
     /**
-     * @var string
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.id",
@@ -44,16 +48,17 @@ class DateDimension implements EntityInterface
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
      *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var DateTime
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.date",
@@ -65,11 +70,9 @@ class DateDimension implements EntityInterface
      *      nullable=false,
      *  )
      */
-    private $date;
+    private DateTime $date;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.year",
@@ -84,11 +87,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $year;
+    private int $year;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.month",
@@ -103,11 +104,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $month;
+    private int $month;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.day",
@@ -122,11 +121,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $day;
+    private int $day;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.quarter",
@@ -141,11 +138,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $quarter;
+    private int $quarter;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.weekNumber",
@@ -160,11 +155,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $weekNumber;
+    private int $weekNumber;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.dayNumber",
@@ -179,11 +172,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $dayNumberOfWeek;
+    private int $dayNumberOfWeek;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.dayNumberOfYear",
@@ -198,11 +189,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $dayNumberOfYear;
+    private int $dayNumberOfYear;
 
     /**
-     * @var bool
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.leapYear",
@@ -217,11 +206,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $leapYear;
+    private bool $leapYear;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "DateDimension",
      *      "DateDimension.weekNumberingYear",
@@ -236,11 +223,9 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $weekNumberingYear;
+    private int $weekNumberingYear;
 
     /**
-     * @var int
-     *
      * @Groups({
      *      "Default",
      *      "DateDimension",
@@ -256,137 +241,95 @@ class DateDimension implements EntityInterface
      *      },
      *  )
      */
-    private $unixTime;
+    private int $unixTime;
 
     /**
      * DateDimension constructor.
-     *
-     * @param DateTime|null $dateTime
-     *
-     * @throws Throwable
      */
-    public function __construct(?DateTime $dateTime = null)
+    public function __construct(DateTime $dateTime)
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
 
-        if ($dateTime !== null) {
-            $this->date = $dateTime;
-            $this->year = (int)$dateTime->format('Y');
-            $this->month = (int)$dateTime->format('n');
-            $this->day = (int)$dateTime->format('j');
-            $this->quarter = (int)floor(((int)$dateTime->format('n') - 1) / 3) + 1;
-            $this->weekNumber = (int)$dateTime->format('W');
-            $this->dayNumberOfWeek = (int)$dateTime->format('N');
-            $this->dayNumberOfYear = (int)$dateTime->format('z');
-            $this->leapYear = (bool)$dateTime->format('L');
-            $this->weekNumberingYear = (int)$dateTime->format('o');
-            $this->unixTime = (int)$dateTime->format('U');
-        }
+        $this->date = $dateTime;
+        $this->year = (int)$dateTime->format('Y');
+        $this->month = (int)$dateTime->format('n');
+        $this->day = (int)$dateTime->format('j');
+        $this->quarter = (int)floor(((int)$dateTime->format('n') - 1) / 3) + 1;
+        $this->weekNumber = (int)$dateTime->format('W');
+        $this->dayNumberOfWeek = (int)$dateTime->format('N');
+        $this->dayNumberOfYear = (int)$dateTime->format('z');
+        $this->leapYear = (bool)$dateTime->format('L');
+        $this->weekNumberingYear = (int)$dateTime->format('o');
+        $this->unixTime = (int)$dateTime->format('U');
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return DateTime
-     */
     public function getDate(): DateTime
     {
         return $this->date;
     }
 
-    /**
-     * @return int
-     */
     public function getYear(): int
     {
         return $this->year;
     }
 
-    /**
-     * @return int
-     */
     public function getMonth(): int
     {
         return $this->month;
     }
 
-    /**
-     * @return int
-     */
     public function getDay(): int
     {
         return $this->day;
     }
 
-    /**
-     * @return int
-     */
     public function getQuarter(): int
     {
         return $this->quarter;
     }
 
-    /**
-     * @return int
-     */
     public function getWeekNumber(): int
     {
         return $this->weekNumber;
     }
 
-    /**
-     * @return int
-     */
     public function getDayNumberOfWeek(): int
     {
         return $this->dayNumberOfWeek;
     }
 
-    /**
-     * @return int
-     */
     public function getDayNumberOfYear(): int
     {
         return $this->dayNumberOfYear;
     }
 
-    /**
-     * @return bool
-     */
     public function isLeapYear(): bool
     {
         return $this->leapYear;
     }
 
-    /**
-     * @return int
-     */
     public function getWeekNumberingYear(): int
     {
         return $this->weekNumberingYear;
     }
 
-    /**
-     * @return int
-     */
     public function getUnixTime(): int
     {
         return $this->unixTime;
     }
 
     /**
-     * Returns createdAt.
-     *
-     * @return DateTime
+     * @throws Throwable
      */
-    public function getCreatedAt(): DateTime
+    public function getCreatedAt(): DateTimeImmutable
     {
-        return DateTime::createFromFormat('U', (string)$this->getUnixTime(), new DateTimeZone('UTC'));
+        $output = DateTimeImmutable::createFromFormat('U', (string)$this->getUnixTime(), new DateTimeZone('UTC'));
+
+        return $output === false ? new DateTimeImmutable('now', new DateTimeZone('UTC')) : $output;
     }
 }

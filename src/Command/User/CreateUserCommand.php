@@ -17,20 +17,21 @@ use App\Repository\RoleRepository;
 use App\Resource\UserGroupResource;
 use App\Resource\UserResource;
 use App\Security\RolesService;
+use Matthias\SymfonyConsoleForm\Console\Helper\FormHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 
 /**
  * Class CreateUserCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class CreateUserCommand extends Command
 {
-    // Traits
     use ApiKeyUserManagementHelperTrait;
     use SymfonyStyleTrait;
 
@@ -38,9 +39,9 @@ class CreateUserCommand extends Command
     private const PARAMETER_DESCRIPTION = 'description';
 
     /**
-     * @var mixed[]
+     * @var array<int, array<string, string>>
      */
-    private static $commandParameters = [
+    private static array $commandParameters = [
         [
             self::PARAMETER_NAME => 'username',
             self::PARAMETER_DESCRIPTION => 'Username',
@@ -67,35 +68,13 @@ class CreateUserCommand extends Command
         ],
     ];
 
-    /**
-     * @var UserResource
-     */
-    private $userResource;
-
-    /**
-     * @var UserGroupResource
-     */
-    private $userGroupResource;
-
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
-
-    /**
-     * @var RoleRepository
-     */
-    private $roleRepository;
+    private UserResource $userResource;
+    private UserGroupResource $userGroupResource;
+    private RolesService $rolesService;
+    private RoleRepository $roleRepository;
 
     /**
      * CreateUserCommand constructor.
-     *
-     * @param UserResource      $userResource
-     * @param UserGroupResource $userGroupResource
-     * @param RolesService      $rolesService
-     * @param RoleRepository    $roleRepository
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(
         UserResource $userResource,
@@ -113,51 +92,36 @@ class CreateUserCommand extends Command
         $this->setDescription('Console command to create user to database');
     }
 
-    /**
-     * Getter for RolesService
-     *
-     * @return RolesService
-     */
     public function getRolesService(): RolesService
     {
         return $this->rolesService;
     }
 
-    /**
-     * Configures the current command.
-     *
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
-     */
     protected function configure(): void
     {
+        parent::configure();
+
         HelperConfigure::configure($this, self::$commandParameters);
     }
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input  An InputInterface instance
-     * @param OutputInterface $output An OutputInterface instance
-     *
-     * @return int|null null or 0 if everything went fine, or an error code
-     *
-     * @throws \Exception
-     * @throws \InvalidArgumentException
-     * @throws \Doctrine\ORM\NonUniqueResultException
-     * @throws \Symfony\Component\Console\Exception\CommandNotFoundException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
-     * @throws \Symfony\Component\Console\Exception\LogicException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         // Check that roles exists
         $this->checkUserGroups($output, $input->isInteractive(), $io);
 
+        /** @var FormHelper $helper */
+        $helper = $this->getHelper('form');
+
         /** @var UserDto $dto */
-        $dto = $this->getHelper('form')->interactUsingForm(UserType::class, $input, $output);
+        $dto = $helper->interactUsingForm(UserType::class, $input, $output);
 
         // Create new user
         $this->userResource->create($dto);
@@ -166,25 +130,21 @@ class CreateUserCommand extends Command
             $io->success('User created - have a nice day');
         }
 
-        return null;
+        return 0;
     }
 
     /**
-     * Method to check if database contains user groups, if non exists method will run 'user:create-group' command
-     * to create those automatically according to '$this->roles->getRoles()' output. Basically this will automatically
-     * create user groups for each role that is defined to application.
+     * Method to check if database contains user groups, if non exists method
+     * will run 'user:create-group' command to create those automatically
+     * according to '$this->roles->getRoles()' output. Basically this will
+     * automatically create user groups for each role that is defined to
+     * application.
      *
-     * Also note that if groups are not found method will reset application 'role' table content, so that we can be
-     * sure that we can create all groups correctly.
+     * Also note that if groups are not found method will reset application
+     * 'role' table content, so that we can be sure that we can create all
+     * groups correctly.
      *
-     * @param OutputInterface $output
-     * @param bool            $interactive
-     * @param SymfonyStyle    $io
-     *
-     * @throws \Exception
-     * @throws \InvalidArgumentException
-     * @throws \Doctrine\ORM\NonUniqueResultException
-     * @throws \Symfony\Component\Console\Exception\CommandNotFoundException
+     * @throws Throwable
      */
     private function checkUserGroups(OutputInterface $output, bool $interactive, SymfonyStyle $io): void
     {

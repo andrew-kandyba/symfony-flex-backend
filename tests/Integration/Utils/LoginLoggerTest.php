@@ -20,7 +20,7 @@ use Throwable;
  * Class LoginLoggerTest
  *
  * @package App\Tests\Integration\Utils
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LoginLoggerTest extends KernelTestCase
 {
@@ -35,13 +35,12 @@ class LoginLoggerTest extends KernelTestCase
         /**
          * @var MockObject|LogLoginResource $logLoginResource
          */
-        $logLoginResource = $this->getMockBuilder(LogLoginResource::class)->disableOriginalConstructor()->getMock();
-        $requestStack = new RequestStack();
+        $logLoginResource = $this->getMockBuilder(LogLoginResource::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $loginLogger = new LoginLogger($logLoginResource, $requestStack);
-        $loginLogger->process('');
-
-        unset($loginLogger, $requestStack, $logLoginResource);
+        (new LoginLogger($logLoginResource, new RequestStack()))
+            ->process('');
     }
 
     /**
@@ -55,10 +54,11 @@ class LoginLoggerTest extends KernelTestCase
         /**
          * @var MockObject|LogLoginResource $logLoginResource
          */
-        $logLoginResource = $this->getMockBuilder(LogLoginResource::class)->disableOriginalConstructor()->getMock();
-        $requestStack = new RequestStack();
+        $logLoginResource = $this->getMockBuilder(LogLoginResource::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $loginLogger = new LoginLogger($logLoginResource, $requestStack);
-        $loginLogger->process('');
+        (new LoginLogger($logLoginResource, new RequestStack()))
+            ->process('');
     }
 }

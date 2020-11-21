@@ -10,9 +10,8 @@ namespace App\EventListener;
 
 use App\Entity\User;
 use App\Security\SecurityUser;
-use Doctrine\Common\Persistence\Event\LifecycleEventArgs;
+use Doctrine\ORM\Event\LifecycleEventArgs;
 use LengthException;
-use RuntimeException;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use function strlen;
 
@@ -20,59 +19,30 @@ use function strlen;
  * Class UserEntityEventListener
  *
  * @package App\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserEntityEventListener
 {
-    /**
-     * Used password encoder
-     *
-     * @var UserPasswordEncoderInterface
-     */
-    private $userPasswordEncoder;
+    private UserPasswordEncoderInterface $userPasswordEncoder;
 
     /**
-     * Constructor
-     *
-     * @param UserPasswordEncoderInterface $userPasswordEncoder
+     * Constructor of the class.
      */
     public function __construct(UserPasswordEncoderInterface $userPasswordEncoder)
     {
         $this->userPasswordEncoder = $userPasswordEncoder;
     }
 
-    /**
-     * Doctrine lifecycle event for 'prePersist' event.
-     *
-     * @param LifecycleEventArgs $event
-     *
-     * @throws LengthException
-     * @throws RuntimeException
-     */
     public function prePersist(LifecycleEventArgs $event): void
     {
         $this->process($event);
     }
 
-    /**
-     * Doctrine lifecycle event for 'preUpdate' event.
-     *
-     * @param LifecycleEventArgs $event
-     *
-     * @throws LengthException
-     * @throws RuntimeException
-     */
     public function preUpdate(LifecycleEventArgs $event): void
     {
         $this->process($event);
     }
 
-    /**
-     * @param LifecycleEventArgs $event
-     *
-     * @throws RuntimeException
-     * @throws LengthException
-     */
     private function process(LifecycleEventArgs $event): void
     {
         // Get user entity object
@@ -84,14 +54,6 @@ class UserEntityEventListener
         }
     }
 
-    /**
-     * Method to change user password whenever it's needed.
-     *
-     * @param User $user
-     *
-     * @throws LengthException
-     * @throws RuntimeException
-     */
     private function changePassword(User $user): void
     {
         // Get plain password from user entity
@@ -104,9 +66,8 @@ class UserEntityEventListener
             }
 
             // Password hash callback
-            $callback = function (string $plainPassword) use ($user): string {
-                return $this->userPasswordEncoder->encodePassword(new SecurityUser($user), $plainPassword);
-            };
+            $callback = fn (string $plainPassword): string => $this->userPasswordEncoder
+                ->encodePassword(new SecurityUser($user, []), $plainPassword);
 
             // Set new password and encode it with user encoder
             $user->setPassword($callback, $plainPassword);

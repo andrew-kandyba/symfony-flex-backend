@@ -10,10 +10,11 @@ namespace App\DTO\User;
 
 use App\DTO\RestDto;
 use App\DTO\RestDtoInterface;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Interfaces\UserGroupAwareInterface;
 use App\Entity\User as Entity;
 use App\Entity\UserGroup as UserGroupEntity;
-use App\Entity\UserGroupAwareInterface;
+use App\Service\Localization;
 use App\Validator\Constraints as AppAssert;
 use Symfony\Component\Validator\Constraints as Assert;
 use function array_map;
@@ -25,85 +26,104 @@ use function array_map;
  * @AppAssert\UniqueUsername()
  *
  * @package App\DTO\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  *
- * @method self|RestDtoInterface  get(string $id): RestDtoInterface
- * @method self|RestDtoInterface  patch(RestDtoInterface $dto): RestDtoInterface
- * @method Entity|EntityInterface update(EntityInterface $entity): EntityInterface
+ * @method self|RestDtoInterface get(string $id)
+ * @method self|RestDtoInterface patch(RestDtoInterface $dto)
+ * @method Entity|EntityInterface update(EntityInterface $entity)
  */
 class User extends RestDto
 {
     /**
-     * @var mixed[]
+     * @var array<string, string>
      */
-    protected static $mappings = [
+    protected static array $mappings = [
         'password' => 'updatePassword',
         'userGroups' => 'updateUserGroups',
     ];
 
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $username = '';
+    protected string $username = '';
 
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $firstName = '';
+    protected string $firstName = '';
 
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $lastName = '';
+    protected string $lastName = '';
 
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
      * @Assert\Email()
      */
-    protected $email = '';
+    protected string $email = '';
 
     /**
-     * @var UserGroupEntity[]
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Language()
+     */
+    protected string $language = Localization::DEFAULT_LANGUAGE;
+
+    /**
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Locale()
+     */
+    protected string $locale = Localization::DEFAULT_LOCALE;
+
+    /**
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Timezone()
+     */
+    protected string $timezone = Localization::DEFAULT_TIMEZONE;
+
+    /**
+     * @var UserGroupEntity[]|array<int, UserGroupEntity>
      *
-     * @AppAssert\EntityReferenceExists()
+     * @AppAssert\EntityReferenceExists(entityClass=UserGroupEntity::class)
      */
-    protected $userGroups = [];
+    protected array $userGroups = [];
 
     /**
-     * @var string
-     *
-     * @Assert\Length(min = 8, max = 255)
+     * @Assert\Length(
+     *      min = 8,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $password = '';
+    protected string $password = '';
 
-    /**
-     * @return string
-     */
     public function getUsername(): string
     {
         return $this->username;
     }
 
-    /**
-     * @param string $username
-     *
-     * @return User
-     */
     public function setUsername(string $username): self
     {
         $this->setVisited('username');
@@ -113,19 +133,11 @@ class User extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getFirstName(): string
     {
         return $this->firstName;
     }
 
-    /**
-     * @param string $firstName
-     *
-     * @return User
-     */
     public function setFirstName(string $firstName): self
     {
         $this->setVisited('firstName');
@@ -135,19 +147,11 @@ class User extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getLastName(): string
     {
         return $this->lastName;
     }
 
-    /**
-     * @param string $lastName
-     *
-     * @return User
-     */
     public function setLastName(string $lastName): self
     {
         $this->setVisited('lastName');
@@ -157,19 +161,11 @@ class User extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getEmail(): string
     {
         return $this->email;
     }
 
-    /**
-     * @param string $email
-     *
-     * @return User
-     */
     public function setEmail(string $email): self
     {
         $this->setVisited('email');
@@ -179,8 +175,50 @@ class User extends RestDto
         return $this;
     }
 
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): self
+    {
+        $this->setVisited('language');
+
+        $this->language = $language;
+
+        return $this;
+    }
+
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+
+    public function setLocale(string $locale): self
+    {
+        $this->setVisited('locale');
+
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
+    public function setTimezone(string $timezone): self
+    {
+        $this->setVisited('timezone');
+
+        $this->timezone = $timezone;
+
+        return $this;
+    }
+
     /**
-     * @return UserGroupEntity[]
+     * @return array<int, UserGroupEntity>
      */
     public function getUserGroups(): array
     {
@@ -188,9 +226,7 @@ class User extends RestDto
     }
 
     /**
-     * @param UserGroupEntity[] $userGroups
-     *
-     * @return User
+     * @param array<int, UserGroupEntity> $userGroups
      */
     public function setUserGroups(array $userGroups): self
     {
@@ -201,19 +237,11 @@ class User extends RestDto
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getPassword(): string
     {
         return $this->password;
     }
 
-    /**
-     * @param string|null $password
-     *
-     * @return User
-     */
     public function setPassword(?string $password = null): self
     {
         if ($password !== null) {
@@ -240,7 +268,14 @@ class User extends RestDto
             $this->firstName = $entity->getFirstName();
             $this->lastName = $entity->getLastName();
             $this->email = $entity->getEmail();
-            $this->userGroups = $entity->getUserGroups()->toArray();
+            $this->language = $entity->getLanguage();
+            $this->locale = $entity->getLocale();
+            $this->timezone = $entity->getTimezone();
+
+            /** @var array<int, UserGroupEntity> $groups */
+            $groups = $entity->getUserGroups()->toArray();
+
+            $this->userGroups = $groups;
         }
 
         return $this;
@@ -248,11 +283,6 @@ class User extends RestDto
 
     /**
      * Method to update User entity password.
-     *
-     * @param Entity $entity
-     * @param string $value
-     *
-     * @return User
      */
     protected function updatePassword(Entity $entity, string $value): self
     {
@@ -264,8 +294,7 @@ class User extends RestDto
     /**
      * Method to update User entity user groups.
      *
-     * @param UserGroupAwareInterface $entity
-     * @param UserGroupEntity[]       $value
+     * @param array<int, UserGroupEntity> $value
      */
     protected function updateUserGroups(UserGroupAwareInterface $entity, array $value): void
     {

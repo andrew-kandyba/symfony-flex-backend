@@ -6,18 +6,18 @@ declare(strict_types = 1);
  * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 
-namespace App\Tests\Integration\Dto\src;
+namespace App\Tests\Integration\DTO\src;
 
 use App\Dto\RestDto;
 use App\DTO\RestDtoInterface;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Class DummyDto
  *
  * @package App\Tests\Integration\Dto\src
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class DummyDto extends RestDto
 {
@@ -31,7 +31,7 @@ class DummyDto extends RestDto
      *
      * @return DummyDto
      */
-    public function setFoo($foo): DummyDto
+    public function setFoo($foo): self
     {
         $this->setVisited('foo');
 
@@ -48,17 +48,11 @@ class DummyDto extends RestDto
         return $this->foo;
     }
 
-    /**
-     * @return bool
-     */
     public function isFoo(): bool
     {
         return (bool)$this->foo;
     }
 
-    /**
-     * @return bool
-     */
     public function hasFoo(): bool
     {
         return (bool)$this->foo;
@@ -66,10 +60,6 @@ class DummyDto extends RestDto
 
     /**
      * Method to create DTO from request object.
-     *
-     * @param Request $request
-     *
-     * @return RestDtoInterface
      */
     public function createFromRequest(Request $request): RestDtoInterface
     {
@@ -78,10 +68,6 @@ class DummyDto extends RestDto
 
     /**
      * Method to load DummyDto data from specified entity.
-     *
-     * @param EntityInterface $entity
-     *
-     * @return RestDtoInterface
      */
     public function load(EntityInterface $entity): RestDtoInterface
     {
@@ -90,13 +76,11 @@ class DummyDto extends RestDto
 
     /**
      * Method to update specified entity with DummyDto data.
-     *
-     * @param EntityInterface $entity
-     *
-     * @return EntityInterface
      */
     public function update(EntityInterface $entity): EntityInterface
     {
+        parent::update($entity);
+
         return $entity;
     }
 }

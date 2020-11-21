@@ -8,6 +8,8 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration;
 
+use App\Doctrine\DBAL\Types\EnumLanguageType;
+use App\Doctrine\DBAL\Types\EnumLocaleType;
 use App\Doctrine\DBAL\Types\EnumLogLoginType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,39 +23,11 @@ use function implode;
  * Class SchemaTest
  *
  * @package App\Tests\Integration
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class SchemaTest extends KernelTestCase
 {
-    /**
-     * @var SchemaValidator
-     */
-    private $validator;
-
-    public function testThatMappingsAreValid(): void
-    {
-        $errors = $this->validator->validateMapping();
-
-        $messages = [];
-
-        $formatter = static function ($errors, $className) use (&$messages) {
-            $messages[] = $className . ': ' . implode(', ', $errors);
-        };
-
-        array_walk($errors, $formatter);
-
-        static::assertEmpty($errors, implode("\n", $messages));
-
-        unset($errors, $messages);
-    }
-
-    public function testThatSchemaInSyncWithMetadata(): void
-    {
-        static::assertTrue(
-            $this->validator->schemaInSyncWithMetadata(),
-            'The database schema is not in sync with the current mapping file.'
-        );
-    }
+    private SchemaValidator $validator;
 
     /**
      * @throws Throwable
@@ -62,9 +36,15 @@ class SchemaTest extends KernelTestCase
     {
         parent::setUp();
 
-        gc_enable();
-
         static::bootKernel();
+
+        if (!Type::hasType('EnumLanguage')) {
+            Type::addType('EnumLanguage', EnumLanguageType::class);
+        }
+
+        if (!Type::hasType('EnumLocale')) {
+            Type::addType('EnumLocale', EnumLocaleType::class);
+        }
 
         if (!Type::hasType('EnumLogLogin')) {
             Type::addType('EnumLogLogin', EnumLogLoginType::class);
@@ -78,15 +58,26 @@ class SchemaTest extends KernelTestCase
         $this->validator = new SchemaValidator($em);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function tearDown(): void
+    public function testThatMappingsAreValid(): void
     {
-        parent::tearDown();
+        $errors = $this->validator->validateMapping();
 
-        unset($this->validator);
+        $messages = [];
 
-        gc_collect_cycles();
+        $formatter = static function ($errors, $className) use (&$messages): void {
+            $messages[] = $className . ': ' . implode(', ', $errors);
+        };
+
+        array_walk($errors, $formatter);
+
+        static::assertEmpty($errors, implode("\n", $messages));
+    }
+
+    public function testThatSchemaInSyncWithMetadata(): void
+    {
+        static::assertTrue(
+            $this->validator->schemaInSyncWithMetadata(),
+            'The database schema is not in sync with the current mapping file.'
+        );
     }
 }

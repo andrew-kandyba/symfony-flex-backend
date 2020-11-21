@@ -20,14 +20,11 @@ use function getenv;
  * Class WebTestCase
  *
  * @package App\Tests
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class WebTestCase extends BaseWebTestCase
 {
-    /**
-     * @var Auth
-     */
-    private $authService;
+    private Auth $authService;
 
     /**
      * @codeCoverageIgnore
@@ -49,9 +46,6 @@ abstract class WebTestCase extends BaseWebTestCase
         gc_collect_cycles();
     }
 
-    /**
-     * @inheritdoc
-     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -67,12 +61,8 @@ abstract class WebTestCase extends BaseWebTestCase
     /**
      * Helper method to get authorized client for specified username and password.
      *
-     * @param string|null  $username
-     * @param string|null  $password
-     * @param mixed[]|null $options
-     * @param mixed[]|null $server
-     *
-     * @return KernelBrowser
+     * @param array<mixed>|null $options
+     * @param array<mixed>|null $server
      *
      * @throws Throwable
      */
@@ -82,8 +72,8 @@ abstract class WebTestCase extends BaseWebTestCase
         ?array $options = null,
         ?array $server = null
     ): KernelBrowser {
-        $options = $options ?? [];
-        $server = $server ?? [];
+        $options ??= [];
+        $server ??= [];
 
         // Merge authorization headers
         $server = array_merge(
@@ -95,22 +85,21 @@ abstract class WebTestCase extends BaseWebTestCase
             $server
         );
 
+        self::ensureKernelShutdown();
+
         return static::createClient(array_merge($options, ['debug' => false]), $server);
     }
 
     /**
      * Helper method to get authorized API Key client for specified role.
      *
-     * @param string|null  $role
-     * @param mixed[]|null $options
-     * @param mixed[]|null $server
-     *
-     * @return KernelBrowser
+     * @param array<mixed>|null $options
+     * @param array<mixed>|null $server
      */
     public function getApiKeyClient(?string $role = null, ?array $options = null, ?array $server = null): KernelBrowser
     {
-        $options = $options ?? [];
-        $server = $server ?? [];
+        $options ??= [];
+        $server ??= [];
 
         // Merge authorization headers
         $server = array_merge(
@@ -120,11 +109,13 @@ abstract class WebTestCase extends BaseWebTestCase
             $server
         );
 
+        self::ensureKernelShutdown();
+
         return static::createClient($options, $server);
     }
 
     /**
-     * @return mixed[]
+     * @return array<string, string>
      */
     public function getJsonHeaders(): array
     {
@@ -137,7 +128,7 @@ abstract class WebTestCase extends BaseWebTestCase
     /**
      * @codeCoverageIgnore
      *
-     * @return mixed[]
+     * @return array<string, string>
      */
     public function getFastestHeaders(): array
     {
@@ -145,7 +136,7 @@ abstract class WebTestCase extends BaseWebTestCase
 
         if (getenv('ENV_TEST_CHANNEL_READABLE')) {
             $output = [
-                'X-FASTEST-ENV-TEST-CHANNEL-READABLE' => getenv('ENV_TEST_CHANNEL_READABLE'),
+                'X-FASTEST-ENV-TEST-CHANNEL-READABLE' => (string)getenv('ENV_TEST_CHANNEL_READABLE'),
             ];
         }
 

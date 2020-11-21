@@ -8,12 +8,19 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Interfaces\UserGroupAwareInterface;
+use App\Entity\Interfaces\UserInterface;
 use App\Entity\Traits\Blameable;
 use App\Entity\Traits\Timestampable;
 use App\Entity\Traits\UserRelations;
+use App\Entity\Traits\Uuid;
+use App\Service\Localization;
+use App\Validator\Constraints as AppAssert;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints as AssertCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -28,109 +35,134 @@ use Throwable;
  * @ORM\Table(
  *      name="user",
  *      uniqueConstraints={
- *          @ORM\UniqueConstraint(name="uq_username", columns={"username"}),
- *          @ORM\UniqueConstraint(name="uq_email", columns={"email"}),
+ * @ORM\UniqueConstraint(name="uq_username", columns={"username"}),
+ * @ORM\UniqueConstraint(name="uq_email", columns={"email"}),
  *      },
  *  )
  * @ORM\Entity()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class User implements EntityInterface, UserInterface, UserGroupAwareInterface
 {
-    // Traits
     use Blameable;
     use Timestampable;
     use UserRelations;
+    use Uuid;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "User",
      *      "User.id",
+     *
+     *      "LogLogin.user",
+     *      "LogLoginFailure.user",
+     *      "LogRequest.user",
+     *
      *      "UserGroup.users",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
      *  })
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
-     *      nullable=false
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
+     *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "User",
      *      "User.username",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
      *  })
      *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      *
      * @ORM\Column(
      *      name="username",
      *      type="string",
      *      length=255,
-     *      nullable=false
+     *      nullable=false,
      *  )
      */
-    private $username = '';
+    private string $username = '';
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "User",
      *      "User.firstName",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
      *  })
      *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      *
      * @ORM\Column(
      *      name="first_name",
      *      type="string",
      *      length=255,
-     *      nullable=false
+     *      nullable=false,
      *  )
      */
-    private $firstName = '';
+    private string $firstName = '';
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "User",
      *      "User.lastName",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
      *  })
      *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 2, max = 255)
+     * @Assert\Length(
+     *      min = 2,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      *
      * @ORM\Column(
      *      name="last_name",
      *      type="string",
      *      length=255,
-     *      nullable=false
+     *      nullable=false,
      *  )
      */
-    private $lastName = '';
+    private string $lastName = '';
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "User",
      *      "User.email",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
      *  })
      *
      * @Assert\NotBlank()
@@ -141,29 +173,99 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
      *      name="email",
      *      type="string",
      *      length=255,
-     *      nullable=false
+     *      nullable=false,
      *  )
      */
-    private $email = '';
+    private string $email = '';
 
     /**
-     * @var string
+     * @Groups({
+     *      "User",
+     *      "User.language",
      *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
+     *  })
+     *
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Language()
+     *
+     * @ORM\Column(
+     *      name="language",
+     *      type="EnumLanguage",
+     *      nullable=false,
+     *      options={
+     *          "comment": "User language for translations",
+     *      }
+     *  )
+     */
+    private string $language = Localization::DEFAULT_LANGUAGE;
+
+    /**
+     * @Groups({
+     *      "User",
+     *      "User.locale",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
+     *  })
+     *
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Locale()
+     *
+     * @ORM\Column(
+     *      name="locale",
+     *      type="EnumLocale",
+     *      nullable=false,
+     *      options={
+     *          "comment": "User locale for number, time, date, etc. formatting.",
+     *      }
+     *  )
+     */
+    private string $locale = Localization::DEFAULT_LOCALE;
+
+    /**
+     * * @Groups({
+     *      "User",
+     *      "User.timezone",
+     *
+     *      "set.UserProfile",
+     *      "set.UserBasic",
+     *  })
+     *
+     * @Assert\NotBlank()
+     * @Assert\NotNull()
+     * @AppAssert\Timezone()
+     *
+     * @ORM\Column(
+     *      name="timezone",
+     *      type="string",
+     *      length=255,
+     *      nullable=false,
+     *      options={
+     *          "comment": "User timezone which should be used to display time, date, etc.",
+     *          "default": "Europe/Helsinki",
+     *      },
+     *  )
+     */
+    private string $timezone = Localization::DEFAULT_TIMEZONE;
+
+    /**
      * @ORM\Column(
      *      name="password",
      *      type="string",
      *      length=255,
-     *      nullable=false
+     *      nullable=false,
      *  )
      */
-    private $password = '';
+    private string $password = '';
 
     /**
      * Plain password. Used for model validation. Must not be persisted.
-     *
-     * @var  string
      */
-    private $plainPassword = '';
+    private string $plainPassword = '';
 
     /**
      * User constructor.
@@ -172,7 +274,7 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
      */
     public function __construct()
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
 
         $this->userGroups = new ArrayCollection();
         $this->logsRequest = new ArrayCollection();
@@ -180,27 +282,16 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
         $this->logsLoginFailure = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return string
-     */
     public function getUsername(): string
     {
         return $this->username;
     }
 
-    /**
-     * @param string $username
-     *
-     * @return User
-     */
     public function setUsername(string $username): self
     {
         $this->username = $username;
@@ -208,19 +299,11 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getFirstName(): string
     {
         return $this->firstName;
     }
 
-    /**
-     * @param string $firstName
-     *
-     * @return User
-     */
     public function setFirstName(string $firstName): self
     {
         $this->firstName = $firstName;
@@ -228,19 +311,11 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getLastName(): string
     {
         return $this->lastName;
     }
 
-    /**
-     * @param string $lastName
-     *
-     * @return User
-     */
     public function setLastName(string $lastName): self
     {
         $this->lastName = $lastName;
@@ -248,19 +323,11 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getEmail(): string
     {
         return $this->email;
     }
 
-    /**
-     * @param string $email
-     *
-     * @return User
-     */
     public function setEmail(string $email): self
     {
         $this->email = $email;
@@ -268,47 +335,66 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * @return string
-     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): self
+    {
+        $this->language = $language;
+
+        return $this;
+    }
+
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+
+    public function setLocale(string $locale): self
+    {
+        $this->locale = $locale;
+
+        return $this;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
+    public function setTimezone(string $timezone): self
+    {
+        $this->timezone = $timezone;
+
+        return $this;
+    }
+
     public function getPassword(): string
     {
         return $this->password;
     }
 
-    /**
-     * @param callable  $encoder
-     * @param string    $plainPassword
-     *
-     * @return User
-     */
     public function setPassword(callable $encoder, string $plainPassword): self
     {
-        $this->password = $encoder($plainPassword);
+        $this->password = (string)$encoder($plainPassword);
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getPlainPassword(): string
     {
         return $this->plainPassword;
     }
 
-    /**
-     * @param string $plainPassword
-     *
-     * @return User
-     */
     public function setPlainPassword(string $plainPassword): self
     {
         if ($plainPassword !== '') {
             $this->plainPassword = $plainPassword;
 
-            // Change some mapped values so preUpdate will get called.
-            $this->password = ''; // just blank it out
+            // Change some mapped values so preUpdate will get called - just blank it out
+            $this->password = '';
         }
 
         return $this;
@@ -322,22 +408,6 @@ class User implements EntityInterface, UserInterface, UserGroupAwareInterface
     public function getSalt(): ?string
     {
         return null;
-    }
-
-    /**
-     * Method to get login data for JWT token.
-     *
-     * @return mixed[]
-     */
-    public function getLoginData(): array
-    {
-        return [
-            'id' => $this->getId(),
-            'firstName' => $this->getFirstName(),
-            'lastName' => $this->getLastName(),
-            'email' => $this->getEmail(),
-            'roles' => $this->getRoles(),
-        ];
     }
 
     /**

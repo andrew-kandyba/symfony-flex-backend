@@ -9,42 +9,31 @@ declare(strict_types = 1);
 namespace App\Command\User;
 
 use App\Command\Traits\SymfonyStyleTrait;
-use App\DTO\User\UserPatch as UserDto;
+use App\DTO\User\UserUpdate as UserDto;
 use App\Entity\User as UserEntity;
 use App\Form\Type\Console\UserType;
 use App\Resource\UserResource;
+use Matthias\SymfonyConsoleForm\Console\Helper\FormHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Class EditUserCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EditUserCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserResource
-     */
-    private $userResource;
-
-    /**
-     * @var UserHelper
-     */
-    private $userHelper;
+    private UserResource $userResource;
+    private UserHelper $userHelper;
 
     /**
      * EditUserCommand constructor.
-     *
-     * @param UserResource $userResource
-     * @param UserHelper   $userHelper
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserResource $userResource, UserHelper $userHelper)
     {
@@ -58,49 +47,35 @@ class EditUserCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     *
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         // Get user entity
         $user = $this->userHelper->getUser($io, 'Which user you want to edit?');
+        $message = null;
 
         if ($user instanceof UserEntity) {
             $message = $this->updateUser($input, $output, $user);
         }
 
         if ($input->isInteractive()) {
-            $io->success($message ?? 'Nothing changed - have a nice day');
+            $message ??= 'Nothing changed - have a nice day';
+
+            $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 
     /**
      * Method to update specified user entity via specified form.
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     * @param UserEntity      $user
-     *
-     * @return string
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws Throwable
      */
     private function updateUser(InputInterface $input, OutputInterface $output, UserEntity $user): string
     {
@@ -108,16 +83,14 @@ class EditUserCommand extends Command
         $dtoLoaded = new UserDto();
         $dtoLoaded->load($user);
 
-        /** @var UserDto $dtoEdit */
-        $dtoEdit = $this->getHelper('form')->interactUsingForm(
-            UserType::class,
-            $input,
-            $output,
-            ['data' => $dtoLoaded]
-        );
+        /** @var FormHelper $helper */
+        $helper = $this->getHelper('form');
 
-        // Update user
-        $this->userResource->update($user->getId(), $dtoEdit);
+        /** @var UserDto $dtoEdit */
+        $dtoEdit = $helper->interactUsingForm(UserType::class, $input, $output, ['data' => $dtoLoaded]);
+
+        // Patch user
+        $this->userResource->patch($user->getId(), $dtoEdit);
 
         return 'User updated - have a nice day';
     }

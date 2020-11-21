@@ -9,45 +9,30 @@ declare(strict_types = 1);
 namespace App\EventSubscriber;
 
 use App\Utils\JSON;
-use LogicException;
+use JsonException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
-use function fstat;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use function in_array;
-use function is_resource;
-use function is_string;
+use function is_array;
 
 /**
  * Class BodySubscriber
  *
  * @package App\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class BodySubscriber implements EventSubscriberInterface
 {
     /**
-     * Returns an array of event names this subscriber wants to listen to.
+     * {@inheritdoc}
      *
-     * The array keys are event names and the value can be:
-     *
-     *  * The method name to call (priority defaults to 0)
-     *  * An array composed of the method name to call and the priority
-     *  * An array of arrays composed of the method names to call and respective
-     *    priorities, or 0 if unset
-     *
-     * For instance:
-     *
-     *  * array('eventName' => 'methodName')
-     *  * array('eventName' => array('methodName', $priority))
-     *  * array('eventName' => array(array('methodName1', $priority), array('methodName2')))
-     *
-     * @return mixed[] The event names to listen to
+     * @return array<string, array<int, string|int>>
      */
     public static function getSubscribedEvents(): array
     {
         return [
-            'kernel.request' => [
+            RequestEvent::class => [
                 'onKernelRequest',
                 10,
             ],
@@ -58,33 +43,21 @@ class BodySubscriber implements EventSubscriberInterface
      * Implementation of BodySubscriber event. Purpose of this is to convert JSON request data to proper request
      * parameters.
      *
-     * @param GetResponseEvent $event
-     *
-     * @throws LogicException
+     * @throws JsonException
      */
-    public function onKernelRequest(GetResponseEvent $event): void
+    public function onKernelRequest(RequestEvent $event): void
     {
         // Get current request
         $request = $event->getRequest();
-        $content = $request->getContent();
 
-        // Request content is empty so assume that it's ok - probably DELETE or OPTION request
-        if ((is_string($content) && $content === '') || (is_resource($content) && fstat($content)['size'] === 0)) {
-            return;
-        }
-
-        // If request is JSON type convert it to request parameters
-        if ($this->isJsonRequest($request)) {
+        // If request has some content and is JSON type convert it to request parameters
+        if ($request->getContent() !== '' && $this->isJsonRequest($request)) {
             $this->transformJsonBody($request);
         }
     }
 
     /**
      * Method to determine if current Request is JSON type or not.
-     *
-     * @param Request $request
-     *
-     * @return bool
      */
     private function isJsonRequest(Request $request): bool
     {
@@ -94,18 +67,14 @@ class BodySubscriber implements EventSubscriberInterface
     /**
      * Method to transform JSON type request to proper request parameters.
      *
-     * @param Request $request
-     *
-     * @throws LogicException
+     * @throws JsonException
      */
     private function transformJsonBody(Request $request): void
     {
-        /** @var string $content */
-        $content = $request->getContent();
+        $data = JSON::decode((string)$request->getContent(), true);
 
-        /** @var array $data */
-        $data = JSON::decode($content, true);
-
-        $request->request->replace($data);
+        if (is_array($data)) {
+            $request->request->replace($data);
+        }
     }
 }

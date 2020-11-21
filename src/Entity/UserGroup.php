@@ -8,12 +8,16 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Traits\Blameable;
 use App\Entity\Traits\Timestampable;
+use App\Entity\Traits\Uuid;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
+use Stringable;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use Throwable;
@@ -27,38 +31,47 @@ use Throwable;
  * @ORM\Entity()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
-class UserGroup implements EntityInterface
+class UserGroup implements EntityInterface, Stringable
 {
-    // Traits
     use Blameable;
     use Timestampable;
+    use Uuid;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "UserGroup",
      *      "UserGroup.id",
+     *
+     *      "ApiKey.userGroups",
      *      "User.userGroups",
      *      "Role.userGroups",
+     *
+     *      "set.UserProfile",
+     *      "set.UserProfileGroups",
+     *      "set.UserGroupBasic",
      *  })
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
-     *      nullable=false
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
+     *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var Role
-     *
      * @Groups({
      *      "UserGroup.role",
+     *
+     *      "set.UserProfile",
+     *      "set.UserProfileGroups",
+     *      "set.UserGroupBasic",
      *  })
      *
      * @Assert\NotBlank()
@@ -70,21 +83,23 @@ class UserGroup implements EntityInterface
      *      inversedBy="userGroups",
      *  )
      * @ORM\JoinColumns({
-     *      @ORM\JoinColumn(
+     * @ORM\JoinColumn(
      *          name="role",
      *          referencedColumnName="role",
      *          onDelete="CASCADE",
      *      ),
      *  })
      */
-    private $role;
+    private Role $role;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "UserGroup",
      *      "UserGroup.name",
+     *
+     *      "set.UserProfile",
+     *      "set.UserProfileGroups",
+     *      "set.UserGroupBasic",
      *  })
      *
      * @Assert\NotBlank()
@@ -98,10 +113,10 @@ class UserGroup implements EntityInterface
      *      nullable=false
      *  )
      */
-    private $name = '';
+    private string $name = '';
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, User>|ArrayCollection<int, User>
+     * @var Collection<int, User>|ArrayCollection<int, User>
      *
      * @Groups({
      *      "UserGroup.users",
@@ -115,10 +130,10 @@ class UserGroup implements EntityInterface
      *      name="user_has_user_group"
      *  )
      */
-    private $users;
+    private Collection $users;
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, ApiKey>|ArrayCollection<int, ApiKey>
+     * @var Collection<int, ApiKey>|ArrayCollection<int, ApiKey>
      *
      * @Groups({
      *      "UserGroup.apiKeys",
@@ -132,7 +147,7 @@ class UserGroup implements EntityInterface
      *      name="api_key_has_user_group"
      *  )
      */
-    private $apiKeys;
+    private Collection $apiKeys;
 
     /**
      * UserGroup constructor.
@@ -141,33 +156,27 @@ class UserGroup implements EntityInterface
      */
     public function __construct()
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
 
         $this->users = new ArrayCollection();
         $this->apiKeys = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
-    public function getId(): string
+    public function __toString(): string
     {
-        return $this->id;
+        return self::class;
     }
 
-    /**
-     * @return Role
-     */
+    public function getId(): string
+    {
+        return $this->id->toString();
+    }
+
     public function getRole(): Role
     {
         return $this->role;
     }
 
-    /**
-     * @param Role $role
-     *
-     * @return UserGroup
-     */
     public function setRole(Role $role): self
     {
         $this->role = $role;
@@ -175,19 +184,11 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return UserGroup
-     */
     public function setName(string $name): self
     {
         $this->name = $name;
@@ -196,7 +197,7 @@ class UserGroup implements EntityInterface
     }
 
     /**
-     * @return Collection|ArrayCollection|Collection<int, User>|ArrayCollection<int, User>
+     * @return Collection<int, User>|ArrayCollection<int, User>
      */
     public function getUsers(): Collection
     {
@@ -204,20 +205,13 @@ class UserGroup implements EntityInterface
     }
 
     /**
-     * @return Collection|ArrayCollection|Collection<int, ApiKey>|ArrayCollection<int, ApiKey>
+     * @return Collection<int, ApiKey>|ArrayCollection<int, ApiKey>
      */
     public function getApiKeys(): Collection
     {
         return $this->apiKeys;
     }
 
-    /**
-     * Method to attach new user group to user.
-     *
-     * @param   User    $user
-     *
-     * @return  UserGroup
-     */
     public function addUser(User $user): self
     {
         if (!$this->users->contains($user)) {
@@ -228,13 +222,6 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * Method to remove specified user from user group.
-     *
-     * @param   User    $user
-     *
-     * @return  UserGroup
-     */
     public function removeUser(User $user): self
     {
         if ($this->users->removeElement($user)) {
@@ -244,11 +231,6 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * Method to remove all many-to-many user relations from current user group.
-     *
-     * @return  UserGroup
-     */
     public function clearUsers(): self
     {
         $this->users->clear();
@@ -256,13 +238,6 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * Method to attach new user group to user.
-     *
-     * @param ApiKey $apiKey
-     *
-     * @return UserGroup
-     */
     public function addApiKey(ApiKey $apiKey): self
     {
         if (!$this->apiKeys->contains($apiKey)) {
@@ -273,13 +248,6 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * Method to remove specified user from user group.
-     *
-     * @param ApiKey $apiKey
-     *
-     * @return UserGroup
-     */
     public function removeApiKey(ApiKey $apiKey): self
     {
         if ($this->apiKeys->removeElement($apiKey)) {
@@ -289,11 +257,6 @@ class UserGroup implements EntityInterface
         return $this;
     }
 
-    /**
-     * Method to remove all many-to-many api key relations from current user group.
-     *
-     * @return UserGroup
-     */
     public function clearApiKeys(): self
     {
         $this->apiKeys->clear();

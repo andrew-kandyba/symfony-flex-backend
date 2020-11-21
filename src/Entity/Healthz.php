@@ -8,10 +8,13 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
-use DateTime;
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Traits\Uuid;
+use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Throwable;
 
@@ -24,13 +27,13 @@ use Throwable;
  * @ORM\Entity()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class Healthz implements EntityInterface
 {
+    use Uuid;
+
     /**
-     * @var string
-     *
      * @Groups({
      *      "Healthz",
      *      "Healthz.id",
@@ -38,16 +41,17 @@ class Healthz implements EntityInterface
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
-     *      nullable=false
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
+     *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var DateTime
-     *
      * @Groups({
      *      "Healthz",
      *      "Healthz.timestamp",
@@ -55,11 +59,11 @@ class Healthz implements EntityInterface
      *
      * @ORM\Column(
      *      name="timestamp",
-     *      type="datetime",
+     *      type="datetime_immutable",
      *      nullable=false,
      *  )
      */
-    private $timestamp;
+    private DateTimeImmutable $timestamp;
 
     /**
      * Healthz constructor.
@@ -68,45 +72,28 @@ class Healthz implements EntityInterface
      */
     public function __construct()
     {
-        $this->id = Uuid::uuid4()->toString();
-
-        $this->setTimestamp(new DateTime('NOW', new DateTimeZone('UTC')));
+        $this->id = $this->createUuid();
+        $this->timestamp = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return DateTime
-     */
-    public function getTimestamp(): DateTime
+    public function getTimestamp(): DateTimeImmutable
     {
         return $this->getCreatedAt();
     }
 
-    /**
-     * @param DateTime $timestamp
-     *
-     * @return Healthz
-     */
-    public function setTimestamp(DateTime $timestamp): self
+    public function setTimestamp(DateTimeImmutable $timestamp): self
     {
         $this->timestamp = $timestamp;
 
         return $this;
     }
 
-    /**
-     * Returns createdAt.
-     *
-     * @return DateTime
-     */
-    public function getCreatedAt(): DateTime
+    public function getCreatedAt(): DateTimeImmutable
     {
         return $this->timestamp;
     }

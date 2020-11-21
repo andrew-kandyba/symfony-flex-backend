@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Rest\Traits\Actions\Logged;
 
-use App\Annotation\RestApiDoc;
 use App\DTO\RestDtoInterface;
 use App\Rest\Traits\Methods\CreateMethod;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
@@ -25,11 +24,10 @@ use Throwable;
  * @see \App\Rest\Traits\Methods\CreateMethod for detailed documents.
  *
  * @package App\Rest\Traits\Actions\Logged
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait CreateAction
 {
-    // Traits
     use CreateMethod;
 
     /**
@@ -39,13 +37,6 @@ trait CreateAction
      *  )
      *
      * @Security("is_granted('ROLE_LOGGED')")
-     *
-     * @RestApiDoc()
-     *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     *
-     * @return Response
      *
      * @throws Throwable
      */

@@ -9,10 +9,8 @@ declare(strict_types = 1);
 namespace App\Rest\Traits;
 
 use App\DTO\RestDtoInterface;
-use App\Rest\ControllerInterface;
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
-use Doctrine\ORM\EntityManager;
+use App\Rest\Interfaces\ControllerInterface;
+use App\Rest\Traits\Methods\RestMethodProcessCriteria;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 use Doctrine\ORM\UnitOfWork;
@@ -23,7 +21,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 use TypeError;
 use UnexpectedValueException;
@@ -36,43 +33,19 @@ use function sprintf;
  * Trait MethodValidator
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait RestMethodHelper
 {
+    use RestMethodProcessCriteria;
+
     /**
      * Method + DTO class names (key + value)
      *
-     * @var string[]
+     * @var array<string, string>
      */
-    protected static $dtoClasses = [];
+    protected static array $dtoClasses = [];
 
-    /**
-     * Method + Form type class names (key + value)
-     *
-     * @var string[]
-     */
-    protected static $formTypes = [];
-
-    /**
-     * @return RestResourceInterface
-     */
-    abstract public function getResource(): RestResourceInterface;
-
-    /**
-     * @return ResponseHandlerInterface
-     */
-    abstract public function getResponseHandler(): ResponseHandlerInterface;
-
-    /**
-     * Getter method for used DTO class for current controller.
-     *
-     * @param string|null $method
-     *
-     * @return string
-     *
-     * @throws UnexpectedValueException
-     */
     public function getDtoClass(?string $method = null): string
     {
         $dtoClass = $method !== null && array_key_exists($method, static::$dtoClasses)
@@ -92,15 +65,6 @@ trait RestMethodHelper
         return $dtoClass;
     }
 
-    /**
-     * Method to validate REST trait method.
-     *
-     * @param Request  $request
-     * @param string[] $allowedHttpMethods
-     *
-     * @throws LogicException
-     * @throws MethodNotAllowedHttpException
-     */
     public function validateRestMethod(Request $request, array $allowedHttpMethods): void
     {
         // Make sure that we have everything we need to make this work
@@ -119,16 +83,6 @@ trait RestMethodHelper
         }
     }
 
-    /**
-     * Method to handle possible REST method trait exception.
-     *
-     * @param Throwable   $exception
-     * @param string|null $id
-     *
-     * @return Throwable
-     *
-     * @throws NotFoundHttpException
-     */
     public function handleRestMethodException(Throwable $exception, ?string $id = null): Throwable
     {
         if ($id !== null) {
@@ -139,38 +93,22 @@ trait RestMethodHelper
     }
 
     /**
-     * Method to process current criteria array.
-     *
-     * @SuppressWarnings("unused")
-     *
-     * @param mixed[] $criteria
-     */
-    public function processCriteria(/** @scrutinizer ignore-unused */ array &$criteria): void
-    {
-    }
-
-    /**
-     * @param Throwable $exception
-     *
-     * @return int
+     * Getter method for exception code with fallback to `400` bad response.
      */
     private function getExceptionCode(Throwable $exception): int
     {
-        return (int)$exception->getCode() !== 0 ? (int)$exception->getCode() : Response::HTTP_BAD_REQUEST;
+        $code = (int)$exception->getCode();
+
+        return $code !== 0 ? $code : Response::HTTP_BAD_REQUEST;
     }
 
     /**
-     * Method to detach entity from entity manager so possible changes to it won't be saved.
-     *
-     * @param string $id
-     *
-     * @throws NotFoundHttpException
+     * Method to detach entity from entity manager so possible changes to it
+     * won't be saved.
      */
     private function detachEntityFromManager(string $id): void
     {
         $currentResource = $this->getResource();
-
-        /** @var EntityManager $entityManager */
         $entityManager = $currentResource->getRepository()->getEntityManager();
 
         // Fetch entity
@@ -178,23 +116,20 @@ trait RestMethodHelper
 
         // Detach entity from manager if it's been managed by it
         if ($entity !== null
-            /** @scrutinizer ignore-call */
+            /* @scrutinizer ignore-call */
             && $entityManager->getUnitOfWork()->getEntityState($entity) === UnitOfWork::STATE_MANAGED
         ) {
-            $entityManager->detach($entity);
+            $entityManager->clear();
         }
     }
 
     /**
      * @param Throwable|Exception|TypeError|Error $exception
-     *
-     * @return Throwable
      */
     private function determineOutputAndStatusCodeForRestMethodException($exception): Throwable
     {
         $code = $this->getExceptionCode($exception);
 
-        /** @var Exception $exception */
         $output = new HttpException($code, $exception->getMessage(), $exception, [], $code);
 
         if ($exception instanceof HttpException) {

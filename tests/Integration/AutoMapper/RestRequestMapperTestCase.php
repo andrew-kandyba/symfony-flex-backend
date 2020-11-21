@@ -10,8 +10,6 @@ namespace App\Tests\Integration\AutoMapper;
 
 use App\AutoMapper\RestRequestMapper;
 use Generator;
-use InvalidArgumentException;
-use stdClass;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
@@ -20,40 +18,28 @@ use Throwable;
  * Class RestRequestMapperTestCase
  *
  * @package App\Tests\Integration\AutoMapper
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ *
+ * @property RestRequestMapper $mapperObject
  */
-class RestRequestMapperTestCase extends KernelTestCase
+abstract class RestRequestMapperTestCase extends KernelTestCase
 {
-    /**
-     * @var string
-     */
-    protected $mapperClass;
-
-    /**
-     * @var RestRequestMapper
-     */
-    protected $mapperObject;
-
-    /**
-     * @var string[]
-     */
-    protected $restDtoClasses = [];
+    protected string $mapperClass;
+    protected array $restDtoClasses = [];
 
     /**
      * @dataProvider dataProviderTestThatMapToObjectReturnsExpectedDtoObject
      *
-     * @param string $expectedDto
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `mapToObject` method returns `$expectedDto`.
      */
-    public function testThatMapToObjectReturnsExpectedDtoObject(string $expectedDto):  void
+    public function testThatMapToObjectReturnsExpectedDtoObject(string $expectedDto): void
     {
+        /** @noinspection UnnecessaryAssertionInspection */
         static::assertInstanceOf($expectedDto, $this->mapperObject->mapToObject(new Request(), new $expectedDto()));
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatMapToObjectReturnsExpectedDtoObject(): Generator
     {
         foreach ($this->restDtoClasses as $dtoClass) {

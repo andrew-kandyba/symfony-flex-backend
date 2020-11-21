@@ -8,50 +8,41 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Repository;
 
+use App\Repository\BaseRepository;
+use App\Rest\RestResource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use function array_keys;
+use function sort;
 
 /**
  * Class RepositoryTestCase
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ *
+ * @property BaseRepository $repository
  */
-class RepositoryTestCase extends KernelTestCase
+abstract class RepositoryTestCase extends KernelTestCase
 {
-    /**
-     * @var \App\Rest\RestResource
-     */
-    protected $resource;
+    protected string $entityName;
+    protected string $repositoryName;
+    protected string $resourceName;
+    protected array $associations = [];
+    protected array $searchColumns = [];
+    protected RestResource $resource;
 
-    /**
-     * @var \App\Repository\BaseRepository
-     */
-    protected $repository;
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-    /**
-     * @var string
-     */
-    protected $entityName;
+        self::bootKernel();
 
-    /**
-     * @var string
-     */
-    protected $repositoryName;
+        /** @var RestResource $resource */
+        $resource = self::$container->get($this->resourceName);
 
-    /**
-     * @var string
-     */
-    protected $resourceName;
-
-    /**
-     * @var array
-     */
-    protected $associations = [];
-
-    /**
-     * @var array
-     */
-    protected $searchColumns = [];
+        $this->resource = $resource;
+        $this->repository = $this->resource->getRepository();
+    }
 
     public function testThatGetEntityNameReturnsExpected(): void
     {
@@ -60,44 +51,25 @@ class RepositoryTestCase extends KernelTestCase
 
     public function testThatGetAssociationsReturnsExpected(): void
     {
+        $expected = $this->associations;
+        $actual = array_keys($this->repository->getAssociations());
         $message = 'Repository did not return expected associations for entity.';
 
-        static::assertSame(
-            $this->associations,
-            \array_keys($this->repository->getAssociations()),
-            $message
-        );
+        sort($expected);
+        sort($actual);
+
+        static::assertSame($expected, $actual, $message);
     }
 
     public function testThatGetSearchColumnsReturnsExpected(): void
     {
+        $expected = $this->searchColumns;
+        $actual = $this->repository->getSearchColumns();
         $message = 'Repository did not return expected search columns.';
 
-        static::assertSame(
-            $this->searchColumns,
-            $this->repository->getSearchColumns(),
-            $message
-        );
-    }
+        sort($expected);
+        sort($actual);
 
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->resource = static::$container->get($this->resourceName);
-        $this->repository = $this->resource->getRepository();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->resource, $this->repository);
-
-        gc_collect_cycles();
+        static::assertSame($expected, $actual, $message);
     }
 }

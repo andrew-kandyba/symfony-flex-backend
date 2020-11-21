@@ -12,22 +12,19 @@ namespace App\Doctrine\DBAL\Types;
  * Class EnumLogLoginType
  *
  * @package App\Doctrine\DBAL\Types
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EnumLogLoginType extends EnumType
 {
     public const TYPE_FAILURE = 'failure';
     public const TYPE_SUCCESS = 'success';
 
-    /**
-     * @var string
-     */
-    protected static $name = 'EnumLogLogin';
+    protected static string $name = 'EnumLogLogin';
 
     /**
-     * @var string[]
+     * @var array<int, string>
      */
-    protected static $values = [
+    protected static array $values = [
         self::TYPE_FAILURE,
         self::TYPE_SUCCESS,
     ];

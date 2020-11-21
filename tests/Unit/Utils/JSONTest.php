@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types=1);
+declare(strict_types = 1);
 /**
  * /tests/Unit/Utils/JSONTest.php.
  *
@@ -11,7 +11,7 @@ namespace App\Tests\Unit\Utils;
 
 use App\Utils\JSON;
 use Generator;
-use LogicException;
+use JsonException;
 use stdClass;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use function is_array;
@@ -20,7 +20,7 @@ use function serialize;
 /**
  * Class JSONTest.
  *
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class JSONTest extends KernelTestCase
 {
@@ -29,6 +29,10 @@ class JSONTest extends KernelTestCase
      *
      * @param mixed $value
      * @param mixed $expected
+     *
+     * @throws JsonException
+     *
+     * @testdox Test that encode returns `$expected` when using `$value` as input
      */
     public function testThatEncodeWorksLikeExpected($value, $expected): void
     {
@@ -38,8 +42,11 @@ class JSONTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatDecodeWorksLikeExpected
      *
-     * @param array $parameters
      * @param mixed $expected
+     *
+     * @throws JsonException
+     *
+     * @testdox Test that `decode` method returns `$expected`.
      */
     public function testThatDecodeWorksLikeExpected(array $parameters, $expected): void
     {
@@ -50,27 +57,35 @@ class JSONTest extends KernelTestCase
     }
 
     /**
-     * @dataProvider dataProviderTestThatEncodeThrowsAnExceptionOnMaximumDepth
-     *
-     * @param array $arguments
+     * @throws JsonException
      */
-    public function testThatEncodeThrowsAnExceptionOnMaximumDepth(array $arguments): void
+    public function testThatEncodeThrowsAnExceptionOnMaximumDepth(): void
     {
-        $this->expectException(LogicException::class);
+        $this->expectException(JsonException::class);
         $this->expectExceptionMessage('Maximum stack depth exceeded');
+
+        $arguments = [
+            ['foo' => ['bar' => ['foo' => ['bar' => 'foo']]]],
+            0,
+            3,
+        ];
 
         JSON::encode(...$arguments);
     }
 
     /**
-     * @dataProvider dataProviderTestThatDecodeThrowsAnExceptionOnMaximumDepth
-     *
-     * @param array $arguments
+     * @throws JsonException
      */
-    public function testThatDecodeThrowsAnExceptionOnMaximumDepth(array $arguments): void
+    public function testThatDecodeThrowsAnExceptionOnMaximumDepth(): void
     {
-        $this->expectException(LogicException::class);
+        $this->expectException(JsonException::class);
         $this->expectExceptionMessage('Maximum stack depth exceeded');
+
+        $arguments = [
+            '{"bar":"foo","foo":{"a":"foobar","b":{"c":2}}}',
+            false,
+            3,
+        ];
 
         JSON::decode(...$arguments);
     }
@@ -78,12 +93,14 @@ class JSONTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatDecodeThrowsAnExceptionOnMalformedJson
      *
-     * @param string $json
+     * @throws JsonException
+     *
+     * @testdox Test that JSON::decode throws an exception with malformed JSON: '$json'
      */
     public function testThatDecodeThrowsAnExceptionOnMalformedJson(string $json): void
     {
-        $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Syntax error, malformed JSON');
+        $this->expectException(JsonException::class);
+        $this->expectExceptionMessage('Syntax error');
 
         JSON::decode($json);
     }
@@ -91,11 +108,13 @@ class JSONTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatEncodeThrowsAnExceptionOnInvalidUtfCharacters
      *
-     * @param string $input
+     * @throws JsonException
+     *
+     * @testdox Test that JSON::decode throws an exception with invalid UTF characters in JSON: '$input'
      */
     public function testThatEncodeThrowsAnExceptionOnInvalidUtfCharacters(string $input): void
     {
-        $this->expectException(LogicException::class);
+        $this->expectException(JsonException::class);
         $this->expectExceptionMessage('Malformed UTF-8 characters, possibly incorrectly encoded');
 
         JSON::encode($input);
@@ -103,8 +122,6 @@ class JSONTest extends KernelTestCase
 
     /**
      * Data provider for 'testThatEncodeWorksLikeExpected'.
-     *
-     * @return Generator
      */
     public function dataProviderTestThatEncodeWorksLikeExpected(): Generator
     {
@@ -145,17 +162,13 @@ class JSONTest extends KernelTestCase
 
     /**
      * Data provider for 'testThatDecodeWorksLikeExpected'.
-     *
-     * @return Generator
      */
     public function dataProviderTestThatDecodeWorksLikeExpected(): Generator
     {
-        $iterator = static function ($data) {
-            return [
-                [$data[1], is_array($data[0]) ? true : false],
-                $data[0],
-            ];
-        };
+        $iterator = fn (array $data): array => [
+            [$data[1], is_array($data[0])],
+            $data[0],
+        ];
 
         foreach ($this->dataProviderTestThatEncodeWorksLikeExpected() as $data) {
             yield $iterator($data);
@@ -163,41 +176,7 @@ class JSONTest extends KernelTestCase
     }
 
     /**
-     * Date provider for 'testThatEncodeThrowsAnExceptionOnMaximumDepth'.
-     *
-     * @return Generator
-     */
-    public function dataProviderTestThatEncodeThrowsAnExceptionOnMaximumDepth(): Generator
-    {
-        yield [
-            [
-                ['foo' => ['bar' => ['foo' => ['bar' => 'foo']]]],
-                0,
-                3,
-            ],
-        ];
-    }
-
-    /**
-     * Data provider for 'testThatDecodeThrowsAnExceptionOnMaximumDepth'.
-     *
-     * @return Generator
-     */
-    public function dataProviderTestThatDecodeThrowsAnExceptionOnMaximumDepth(): Generator
-    {
-        yield [
-            [
-                '{"bar":"foo","foo":{"a":"foobar","b":{"c":2}}}',
-                false,
-                3,
-            ],
-        ];
-    }
-
-    /**
      * Data provider for 'testThatDecodeThrowsAnExceptionOnMalformedJson'.
-     *
-     * @return Generator
      */
     public function dataProviderTestThatDecodeThrowsAnExceptionOnMalformedJson(): Generator
     {
@@ -209,8 +188,6 @@ class JSONTest extends KernelTestCase
 
     /**
      * Data provider for 'testThatEncodeThrowsAnExceptionOnInvalidUtfCharacters'.
-     *
-     * @return Generator
      */
     public function dataProviderTestThatEncodeThrowsAnExceptionOnInvalidUtfCharacters(): Generator
     {

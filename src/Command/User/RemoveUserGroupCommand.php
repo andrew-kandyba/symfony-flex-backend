@@ -14,35 +14,23 @@ use App\Resource\UserGroupResource;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Class RemoveUserGroupCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RemoveUserGroupCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserGroupResource
-     */
-    private $userGroupResource;
-
-    /**
-     * @var UserHelper
-     */
-    private $userHelper;
+    private UserGroupResource $userGroupResource;
+    private UserHelper $userHelper;
 
     /**
      * RemoveUserGroupCommand constructor.
-     *
-     * @param UserGroupResource $userGroupResource
-     * @param UserHelper        $userHelper
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserGroupResource $userGroupResource, UserHelper $userHelper)
     {
@@ -56,21 +44,16 @@ class RemoveUserGroupCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         $userGroup = $this->userHelper->getUserGroup($io, 'Which user group you want to remove?');
+        $message = null;
 
         if ($userGroup instanceof UserGroup) {
             // Delete user group
@@ -80,9 +63,11 @@ class RemoveUserGroupCommand extends Command
         }
 
         if ($input->isInteractive()) {
-            $io->success($message ?? 'Nothing changed - have a nice day');
+            $message ??= 'Nothing changed - have a nice day';
+
+            $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 }

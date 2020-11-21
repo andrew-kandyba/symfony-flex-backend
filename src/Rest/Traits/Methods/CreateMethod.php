@@ -17,21 +17,14 @@ use Throwable;
  * Trait CreateMethod
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait CreateMethod
 {
-    // Traits
-    use AbstractGenericMethods;
-
     /**
      * Generic 'createMethod' method for REST resources.
      *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     * @param string[]|null    $allowedHttpMethods
-     *
-     * @return Response
+     * @param array<int, string>|null $allowedHttpMethods
      *
      * @throws Throwable
      */
@@ -40,7 +33,7 @@ trait CreateMethod
         RestDtoInterface $restDto,
         ?array $allowedHttpMethods = null
     ): Response {
-        $resource = $this->validateRestMethodAndGetResource($request, $allowedHttpMethods ?? ['POST']);
+        $resource = $this->getResourceForMethod($request, $allowedHttpMethods ?? ['POST']);
 
         try {
             $data = $resource->create($restDto, true);

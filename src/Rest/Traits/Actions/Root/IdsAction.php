@@ -8,9 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Rest\Traits\Actions\Root;
 
-use App\Annotation\RestApiDoc;
 use App\Rest\Traits\Methods\IdsMethod;
-use LogicException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,11 +23,10 @@ use Throwable;
  * @see \App\Rest\Traits\Methods\IdsMethod for detailed documents.
  *
  * @package App\Rest\Traits\Actions\Root
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait IdsAction
 {
-    // Traits
     use IdsMethod;
 
     /**
@@ -40,16 +37,7 @@ trait IdsAction
      *
      * @Security("is_granted('ROLE_ROOT')")
      *
-     * @RestApiDoc()
-     *
-     * @param Request $request
-     *
-     * @return Response
-     *
-     * @throws LogicException
      * @throws Throwable
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException
      */
     public function idsAction(Request $request): Response
     {

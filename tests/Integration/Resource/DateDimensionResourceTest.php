@@ -16,11 +16,11 @@ use App\Resource\DateDimensionResource;
  * Class DateDimensionResourceTest
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class DateDimensionResourceTest extends ResourceTestCase
 {
-    protected $entityClass = DateDimension::class;
-    protected $resourceClass = DateDimensionResource::class;
-    protected $repositoryClass = DateDimensionRepository::class;
+    protected string $entityClass = DateDimension::class;
+    protected string $resourceClass = DateDimensionResource::class;
+    protected string $repositoryClass = DateDimensionRepository::class;
 }

@@ -11,36 +11,24 @@ namespace App\Tests\Integration\Entity;
 use App\Entity\Role;
 use App\Entity\User;
 use App\Entity\UserGroup;
-use App\Security\RolesService;
 use Generator;
 use function serialize;
-use function ucfirst;
 use function unserialize;
 
 /**
  * Class UserTest
  *
  * @package App\Tests\Integration\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserTest extends EntityTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = User::class;
-
-    /**
-     * @var User
-     */
-    protected $entity;
+    protected string $entityName = User::class;
 
     /**
      * @dataProvider dataProviderTestThatPasswordHashingIsWorkingAsExpected
      *
-     * @param callable $callable
-     * @param string   $password
-     * @param string   $expected
+     * @testdox Test that password hashing is working with `$callable` callable.
      */
     public function testThatPasswordHashingIsWorkingAsExpected(
         callable $callable,
@@ -88,8 +76,6 @@ class UserTest extends EntityTestCase
         // Assert that unserialized object returns expected data
         static::assertSame('john', $entity->getUsername());
         static::assertSame('cnffjbeq', $entity->getPassword());
-
-        unset($entity);
     }
 
     public function testThatGetSaltMethodReturnsNull(): void
@@ -97,34 +83,9 @@ class UserTest extends EntityTestCase
         static::assertNull($this->entity->getSalt());
     }
 
-    public function testThatGetLoginDataMethodReturnsExpected(): void
-    {
-        $expected = [
-            'firstName',
-            'lastName',
-            'email',
-        ];
-
-        foreach ($expected as $key) {
-            $method = 'set' . ucfirst($key);
-
-            $this->entity->{$method}($key);
-        }
-
-        $data = $this->entity->getLoginData();
-
-        foreach ($expected as $key) {
-            static::assertArrayHasKey($key, $data);
-            static::assertSame($key, $data[$key]);
-        }
-
-        unset($data);
-    }
-
     public function testThatEraseCredentialsMethodWorksAsExpected(): void
     {
         $this->entity->setPlainPassword('password');
-
         $this->entity->eraseCredentials();
 
         static::assertEmpty($this->entity->getPlainPassword());
@@ -138,22 +99,8 @@ class UserTest extends EntityTestCase
         static::assertSame(['ROLE_ROOT'], $user->getRoles());
     }
 
-    public function testThatGetRolesReturnsExpectedWithRoleService(): void
-    {
-        static::bootKernel();
-
-        $rolesService = static::$container->get(RolesService::class);
-
-        $group = (new UserGroup())->setRole(new Role('ROLE_ROOT'));
-        $user = (new User())->addUserGroup($group)->setRolesService($rolesService);
-
-        static::assertSame(['ROLE_ROOT', 'ROLE_ADMIN', 'ROLE_USER', 'ROLE_LOGGED'], $user->getRoles());
-    }
-
     /**
      * Data provider for testThatPasswordHashingIsWorkingAsExpected
-     *
-     * @return Generator
      */
     public function dataProviderTestThatPasswordHashingIsWorkingAsExpected(): Generator
     {

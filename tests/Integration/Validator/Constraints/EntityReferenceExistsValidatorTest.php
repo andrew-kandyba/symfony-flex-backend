@@ -8,12 +8,11 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Validator\Constraints;
 
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use App\Tests\Integration\Validator\Constraints\src\EntityReference;
 use App\Validator\Constraints\EntityReferenceExists;
 use App\Validator\Constraints\EntityReferenceExistsValidator;
 use Doctrine\ORM\EntityNotFoundException;
-use Doctrine\ORM\Proxy\Proxy;
 use Generator;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\LoggerInterface;
@@ -29,12 +28,17 @@ use Symfony\Component\Validator\Violation\ConstraintViolationBuilderInterface;
  * Class EntityReferenceExistsValidatorTest
  *
  * @package App\Tests\Integration\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EntityReferenceExistsValidatorTest extends KernelTestCase
 {
     public function testThatValidateMethodThrowsUnexpectedTypeException(): void
     {
+        /**
+         * @var MockObject|LoggerInterface $logger
+         */
+        $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
+
         $this->expectException(UnexpectedTypeException::class);
         $this->expectExceptionMessage(
             'Expected argument of type "App\Validator\Constraints\EntityReferenceExists", "SomeConstraint" given'
@@ -42,35 +46,65 @@ class EntityReferenceExistsValidatorTest extends KernelTestCase
 
         $constraint = $this->getMockForAbstractClass(Constraint::class, [], 'SomeConstraint');
 
-        (new EntityReferenceExistsValidator())->validate('', $constraint);
+        (new EntityReferenceExistsValidator($logger))
+            ->validate('', $constraint);
     }
 
     /**
      * @dataProvider dataProviderTestThatValidateMethodThrowsUnexpectedValueException
      *
-     * @param mixed  $value
-     * @param string $expectedMessage
+     * @param mixed $value
+     * @param mixed $entityClass
+     *
+     * @testdox Test that `validate` method throws `$expectedMessage` with `$value` using entity class `$entityClass`
      */
     public function testThatValidateMethodThrowsUnexpectedValueException(
         $value,
+        $entityClass,
         string $expectedMessage
     ): void {
+        /**
+         * @var MockObject|LoggerInterface $logger
+         */
+        $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
+
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage($expectedMessage);
 
-        (new EntityReferenceExistsValidator())->validate($value, new EntityReferenceExists());
+        $constraint = new EntityReferenceExists();
+        $constraint->entityClass = $entityClass;
+
+        (new EntityReferenceExistsValidator($logger))->validate($value, $constraint);
+    }
+
+    public function testThatValidateMethodThrowsUnexpectedValueExceptionWhenValueIsNotEntityInterface(): void
+    {
+        /**
+         * @var MockObject|LoggerInterface $logger
+         */
+        $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage(
+            'Expected argument of type "App\Entity\Interfaces\EntityInterface", "stdClass" given'
+        );
+
+        $constraint = new EntityReferenceExists();
+        $constraint->entityClass = stdClass::class;
+
+        (new EntityReferenceExistsValidator($logger))->validate(new stdClass(), $constraint);
     }
 
     public function testThatContextAndLoggerMethodsAreNotCalledWithinHappyPath(): void
     {
         /**
          * @var MockObject|ExecutionContext $context
-         * @var MockObject|LoggerInterface  $logger
-         * @var MockObject|EntityInterface  $value
+         * @var MockObject|LoggerInterface $logger
+         * @var MockObject|EntityInterface $value
          */
         $context = $this->getMockBuilder(ExecutionContext::class)->disableOriginalConstructor()->getMock();
         $logger = $this->getMockBuilder(LoggerInterface::class)->getMock();
-        $value = $this->getMockForAbstractClass(EntityReference::class);
+        $value = $this->getMockForAbstractClass(EntityReference::class, [], 'TestClass');
 
         $context
             ->expects(static::never())
@@ -85,20 +119,22 @@ class EntityReferenceExistsValidatorTest extends KernelTestCase
             ->method('getCreatedAt')
             ->willReturn(null);
 
+        $constraint = new EntityReferenceExists();
+        $constraint->entityClass = 'TestClass';
+
         // Run validator
-        $validator = new EntityReferenceExistsValidator();
+        $validator = new EntityReferenceExistsValidator($logger);
         $validator->initialize($context);
-        $validator->setLogger($logger);
-        $validator->validate($value, new EntityReferenceExists());
+        $validator->validate($value, $constraint);
     }
 
     public function testThatContextAndLoggerMethodsAreCalledIfEntityReferenceIsNotValidEntity(): void
     {
         /**
          * @var MockObject|ConstraintViolationBuilderInterface $violation
-         * @var MockObject|ExecutionContext                    $context
-         * @var MockObject|LoggerInterface                     $logger
-         * @var MockObject|EntityInterface                     $value
+         * @var MockObject|ExecutionContext $context
+         * @var MockObject|LoggerInterface $logger
+         * @var MockObject|EntityInterface $value
          */
         $violation = $this->getMockBuilder(ConstraintViolationBuilderInterface::class)->getMock();
         $context = $this->getMockBuilder(ExecutionContext::class)->disableOriginalConstructor()->getMock();
@@ -138,34 +174,35 @@ class EntityReferenceExistsValidatorTest extends KernelTestCase
             ->method('getCreatedAt')
             ->willThrowException($exception);
 
+        $constraint = new EntityReferenceExists();
+        $constraint->entityClass = EntityReference::class;
+
         // Run validator
-        $validator = new EntityReferenceExistsValidator();
+        $validator = new EntityReferenceExistsValidator($logger);
         $validator->initialize($context);
-        $validator->setLogger($logger);
-        $validator->validate($value, new EntityReferenceExists());
+        $validator->validate($value, $constraint);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatValidateMethodThrowsUnexpectedValueException(): Generator
     {
-        yield ['', 'Expected argument of type "Doctrine\ORM\Proxy\Proxy", "string" given'];
-
-        yield [new stdClass(), 'Expected argument of type "Doctrine\ORM\Proxy\Proxy", "stdClass" given'];
-
-        yield [[''], 'Expected argument of type "Doctrine\ORM\Proxy\Proxy", "string" given'];
-
-        yield [[new stdClass()], 'Expected argument of type "Doctrine\ORM\Proxy\Proxy", "stdClass" given'];
+        yield ['', stdClass::class, 'Expected argument of type "stdClass", "string" given'];
 
         yield [
-            $this->getMockForAbstractClass(Proxy::class, [], 'ProxyClass'),
-            'Expected argument of type "App\Entity\EntityInterface", "ProxyClass" given',
+            new stdClass(),
+            EntityInterface::class,
+            'Expected argument of type "App\Entity\Interfaces\EntityInterface", "stdClass" given',
         ];
 
         yield [
-            [$this->getMockForAbstractClass(Proxy::class, [], 'ProxyClass')],
-            'Expected argument of type "App\Entity\EntityInterface", "ProxyClass" given',
+            [''],
+            EntityInterface::class,
+            'Expected argument of type "App\Entity\Interfaces\EntityInterface", "string" given',
+        ];
+
+        yield [
+            [new stdClass()],
+            EntityInterface::class,
+            'Expected argument of type "App\Entity\Interfaces\EntityInterface", "stdClass" given',
         ];
     }
 }

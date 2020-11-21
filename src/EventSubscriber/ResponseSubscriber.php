@@ -8,42 +8,37 @@ declare(strict_types = 1);
 
 namespace App\EventSubscriber;
 
-use App\Utils\JSON;
+use App\Service\Version;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
-use function file_get_contents;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
 /**
  * Class ResponseSubscriber
  *
  * @package App\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ResponseSubscriber implements EventSubscriberInterface
 {
+    private Version $version;
+
     /**
-     * Returns an array of event names this subscriber wants to listen to.
+     * ResponseSubscriber constructor.
+     */
+    public function __construct(Version $version)
+    {
+        $this->version = $version;
+    }
+
+    /**
+     * {@inheritdoc}
      *
-     * The array keys are event names and the value can be:
-     *
-     *  * The method name to call (priority defaults to 0)
-     *  * An array composed of the method name to call and the priority
-     *  * An array of arrays composed of the method names to call and respective
-     *    priorities, or 0 if unset
-     *
-     * For instance:
-     *
-     *  * array('eventName' => 'methodName')
-     *  * array('eventName' => array('methodName', $priority))
-     *  * array('eventName' => array(array('methodName1', $priority), array('methodName2')))
-     *
-     * @return mixed[] The event names to listen to
+     * @return array<string, array<int, string|int>>
      */
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::RESPONSE => [
+            ResponseEvent::class => [
                 'onKernelResponse',
                 10,
             ],
@@ -51,25 +46,11 @@ class ResponseSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Subscriber method to log every response.
-     *
-     * @param FilterResponseEvent $event
+     * Subscriber method to attach API version to every response.
      */
-    public function onKernelResponse(FilterResponseEvent $event): void
+    public function onKernelResponse(ResponseEvent $event): void
     {
-        $response = $event->getResponse();
-
         // Attach new header
-        $response->headers->add(['X-API-VERSION' => $this->getApiVersion()]);
-    }
-
-    /**
-     * Method to get current version from composer.json file.
-     *
-     * @return string
-     */
-    private function getApiVersion(): string
-    {
-        return JSON::decode((string)file_get_contents(__DIR__ . '/../../composer.json'))->version ?? 'unknown';
+        $event->getResponse()->headers->add(['X-API-VERSION' => $this->version->get()]);
     }
 }

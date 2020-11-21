@@ -32,38 +32,28 @@ class RestDtoValueResolver implements ArgumentValueResolverInterface
     private const CONTROLLER_KEY = '_controller';
 
     /**
-     * @var array|string[]
+     * @var array<int, string>
      */
-    private $supportedActions = [
+    private array $supportedActions = [
         Controller::ACTION_CREATE,
         Controller::ACTION_UPDATE,
         Controller::ACTION_PATCH,
     ];
 
     /**
-     * @var array|array<string, string>
+     * @var array<string, string>
      */
-    private $actionMethodMap = [
+    private array $actionMethodMap = [
         Controller::ACTION_CREATE => Controller::METHOD_CREATE,
         Controller::ACTION_UPDATE => Controller::METHOD_UPDATE,
         Controller::ACTION_PATCH => Controller::METHOD_PATCH,
     ];
 
-    /**
-     * @var ControllerCollection
-     */
-    private $controllerCollection;
-
-    /**
-     * @var AutoMapperInterface
-     */
-    private $autoMapper;
+    private ControllerCollection $controllerCollection;
+    private AutoMapperInterface $autoMapper;
 
     /**
      * RestDtoValueResolver constructor.
-     *
-     * @param ControllerCollection $controllerCollection
-     * @param AutoMapperInterface  $autoMapper
      */
     public function __construct(ControllerCollection $controllerCollection, AutoMapperInterface $autoMapper)
     {
@@ -72,20 +62,15 @@ class RestDtoValueResolver implements ArgumentValueResolverInterface
     }
 
     /**
-     * Whether this resolver can resolve the value for the given ArgumentMetadata.
-     *
-     * @param Request          $request
-     * @param ArgumentMetadata $argument
-     *
-     * @return bool
+     * {@inheritdoc}
      */
     public function supports(Request $request, ArgumentMetadata $argument): bool
     {
-        if (count(explode('::', $request->attributes->get(self::CONTROLLER_KEY))) !== 2) {
+        if (count(explode('::', (string)$request->attributes->get(self::CONTROLLER_KEY))) !== 2) {
             return false;
         }
 
-        [$controllerName, $actionName] = explode('::', $request->attributes->get(self::CONTROLLER_KEY));
+        [$controllerName, $actionName] = explode('::', (string)$request->attributes->get(self::CONTROLLER_KEY));
 
         return $argument->getType() === RestDtoInterface::class
             && in_array($actionName, $this->supportedActions, true)
@@ -93,20 +78,17 @@ class RestDtoValueResolver implements ArgumentValueResolverInterface
     }
 
     /**
-     * Returns the possible value(s).
-     *
-     * @param Request          $request
-     * @param ArgumentMetadata $argumentMetadata
-     *
-     * @return Generator
+     * {@inheritdoc}
      *
      * @throws UnregisteredMappingException
      */
-    public function resolve(Request $request, ArgumentMetadata $argumentMetadata): Generator
+    public function resolve(Request $request, ArgumentMetadata $argument): Generator
     {
-        [$controllerName, $actionName] = explode('::', $request->attributes->get(self::CONTROLLER_KEY));
+        [$controllerName, $actionName] = explode('::', (string)$request->attributes->get(self::CONTROLLER_KEY));
 
-        $dtoClass = $this->controllerCollection->get($controllerName)->getDtoClass($this->actionMethodMap[$actionName]);
+        $dtoClass = $this->controllerCollection
+            ->get($controllerName)
+            ->getDtoClass((string)$this->actionMethodMap[$actionName]);
 
         yield $this->autoMapper->map($request, $dtoClass);
     }

@@ -16,27 +16,20 @@ use Throwable;
  * Trait FindOneMethod
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait FindOneMethod
 {
-    // Traits
-    use AbstractGenericMethods;
-
     /**
      * Generic 'findOneMethod' method for REST resources.
      *
-     * @param Request       $request
-     * @param string        $id
-     * @param string[]|null $allowedHttpMethods
-     *
-     * @return Response
+     * @param array<int, string>|null $allowedHttpMethods
      *
      * @throws Throwable
      */
     public function findOneMethod(Request $request, string $id, ?array $allowedHttpMethods = null): Response
     {
-        $resource = $this->validateRestMethodAndGetResource($request, $allowedHttpMethods ?? ['GET']);
+        $resource = $this->getResourceForMethod($request, $allowedHttpMethods ?? ['GET']);
 
         try {
             // Fetch data from database

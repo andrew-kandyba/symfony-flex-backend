@@ -17,22 +17,14 @@ use Throwable;
  * Trait UpdateMethod
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait UpdateMethod
 {
-    // Traits
-    use AbstractGenericMethods;
-
     /**
      * Generic 'updateMethod' method for REST resources.
      *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     * @param string           $id
-     * @param string[]|null    $allowedHttpMethods
-     *
-     * @return Response
+     * @param array<int, string>|null $allowedHttpMethods
      *
      * @throws Throwable
      */
@@ -42,7 +34,7 @@ trait UpdateMethod
         string $id,
         ?array $allowedHttpMethods = null
     ): Response {
-        $resource = $this->validateRestMethodAndGetResource($request, $allowedHttpMethods ?? ['PUT']);
+        $resource = $this->getResourceForMethod($request, $allowedHttpMethods ?? ['PUT']);
 
         try {
             $data = $resource->update($id, $restDto, true);

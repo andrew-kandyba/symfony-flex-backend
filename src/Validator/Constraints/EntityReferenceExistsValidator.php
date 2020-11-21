@@ -8,11 +8,10 @@ declare(strict_types = 1);
 
 namespace App\Validator\Constraints;
 
-use App\Entity\EntityInterface;
-use App\Helpers\LoggerAwareTrait;
+use App\Entity\Interfaces\EntityInterface;
 use Closure;
 use Doctrine\ORM\EntityNotFoundException;
-use Doctrine\ORM\Proxy\Proxy;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -29,40 +28,48 @@ use function str_replace;
  * Class EntityReferenceExistsValidator
  *
  * @package App\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EntityReferenceExistsValidator extends ConstraintValidator
 {
-    // Traits
-    use LoggerAwareTrait;
+    private LoggerInterface $logger;
 
     /**
-     * Checks if the passed value is valid.
-     *
-     * @param EntityInterface|mixed  $value      The value that should be validated
-     * @param Constraint|UniqueEmail $constraint The constraint for the validation
+     * EntityReferenceExistsValidator constructor.
+     */
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function validate($value, Constraint $constraint): void
     {
         if (!$constraint instanceof EntityReferenceExists) {
-            throw new UnexpectedTypeException($constraint, __NAMESPACE__ . '\EntityReferenceExists');
+            throw new UnexpectedTypeException($constraint, EntityReferenceExists::class);
         }
 
-        $this->check($this->normalize($value));
+        $values = $this->normalize($constraint->entityClass, $value);
+
+        $this->check($values);
     }
 
     /**
-     * @param EntityInterface|mixed $input
+     * Checks if the passed value is valid.
      *
-     * @return array
+     * @param EntityInterface|array<int, EntityInterface>|mixed $input
+     *
+     * @return array<int, EntityInterface>
      */
-    private function normalize($input): array
+    private function normalize(string $target, $input): array
     {
         $values = is_array($input) ? $input : [$input];
 
         foreach ($values as $value) {
-            if (!$value instanceof Proxy) {
-                throw new UnexpectedValueException($value, Proxy::class);
+            if (!$value instanceof $target) {
+                throw new UnexpectedValueException($value, $target);
             }
 
             if (!$value instanceof EntityInterface) {
@@ -74,7 +81,7 @@ class EntityReferenceExistsValidator extends ConstraintValidator
     }
 
     /**
-     * @param array $entities
+     * @param array<int, EntityInterface> $entities
      */
     private function check(array $entities): void
     {
@@ -86,31 +93,33 @@ class EntityReferenceExistsValidator extends ConstraintValidator
                 : EntityReferenceExists::MESSAGE_MULTIPLE;
             $entity = get_class($entities[0]);
 
+            $parameterEntity = str_replace('Proxies\\__CG__\\', '', $entity);
+            $parameterId = count($invalidIds) > 1 ? implode('", "', $invalidIds) : (string)$invalidIds[0];
+
             $this->context
                 ->buildViolation($message)
-                ->setParameter('{{ entity }}', str_replace('Proxies\\__CG__\\', '', $entity))
-                ->setParameter('{{ id }}', count($invalidIds) > 1 ? implode('", "', $invalidIds) : $invalidIds[0])
+                ->setParameter('{{ entity }}', $parameterEntity)
+                ->setParameter('{{ id }}', $parameterId)
                 ->setCode(EntityReferenceExists::ENTITY_REFERENCE_EXISTS_ERROR)
                 ->addViolation();
         }
     }
 
     /**
-     * @param array $entities
+     * @param array<int, EntityInterface> $entities
      *
-     * @return array
+     * @return array<int, string>
      */
     private function getInvalidValues(array $entities): array
     {
-        $iterator = static function (EntityInterface $entity): string {
-            return $entity->getId();
-        };
-
-        return array_map($iterator, array_filter($entities, $this->getFilterClosure()));
+        return array_map(
+            static fn (EntityInterface $entity): string => $entity->getId(),
+            array_filter($entities, $this->getFilterClosure())
+        );
     }
 
     /**
-     * @return Closure
+     * Method to return used filter closure.
      */
     private function getFilterClosure(): Closure
     {

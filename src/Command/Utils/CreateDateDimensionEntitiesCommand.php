@@ -14,44 +14,35 @@ use Closure;
 use DateInterval;
 use DateTime;
 use DateTimeZone;
-use Doctrine\ORM\ORMInvalidArgumentException;
-use Exception;
 use InvalidArgumentException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Exception\LogicException;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 use function sprintf;
 
 /**
  * Class CreateDateDimensionEntitiesCommand
  *
  * @package App\Command\Utils
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class CreateDateDimensionEntitiesCommand extends Command
 {
     private const YEAR_MIN = 1970;
-    private const YEAR_MAX = 2047; // This should be the year when I'm officially retired
+    // This should be the year when I'm officially retired
+    private const YEAR_MAX = 2047;
 
     /**
-     * @var SymfonyStyle
+     * @psalm-suppress PropertyNotSetInConstructor
      */
-    private $io;
-
-    /**
-     * @var DateDimensionRepository
-     */
-    private $repository;
+    private SymfonyStyle $io;
+    private DateDimensionRepository $repository;
 
     /**
      * PopulateDateDimensionCommand constructor.
-     *
-     * @param DateDimensionRepository $dateDimensionRepository
-     *
-     * @throws LogicException
      */
     public function __construct(DateDimensionRepository $dateDimensionRepository)
     {
@@ -64,18 +55,11 @@ class CreateDateDimensionEntitiesCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null null or 0 if everything went fine, or an error code
-     *
-     * @throws Exception
-     * @throws InvalidArgumentException
-     * @throws ORMInvalidArgumentException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // Create output decorator helpers for the Symfony Style Guide.
         $this->io = new SymfonyStyle($input, $output);
@@ -92,13 +76,11 @@ class CreateDateDimensionEntitiesCommand extends Command
 
         $this->io->success('All done - have a nice day!');
 
-        return null;
+        return 0;
     }
 
     /**
      * Method to get start year value from user.
-     *
-     * @return int
      *
      * @throws InvalidArgumentException
      */
@@ -109,10 +91,6 @@ class CreateDateDimensionEntitiesCommand extends Command
 
     /**
      * Method to get end year value from user.
-     *
-     * @param int $yearStart
-     *
-     * @return int
      *
      * @throws InvalidArgumentException
      */
@@ -128,11 +106,7 @@ class CreateDateDimensionEntitiesCommand extends Command
     /**
      * Method to create DateDimension entities to database.
      *
-     * @param int $yearStart
-     * @param int $yearEnd
-     *
-     * @throws ORMInvalidArgumentException
-     * @throws Exception
+     * @throws Throwable
      */
     private function process(int $yearStart, int $yearEnd): void
     {
@@ -153,11 +127,6 @@ class CreateDateDimensionEntitiesCommand extends Command
 
     /**
      * Helper method to get progress bar for console.
-     *
-     * @param int    $steps
-     * @param string $message
-     *
-     * @return ProgressBar
      */
     private function getProgressBar(int $steps, string $message): ProgressBar
     {
@@ -178,12 +147,7 @@ class CreateDateDimensionEntitiesCommand extends Command
     }
 
     /**
-     * @param int           $yearEnd
-     * @param DateTime     $dateStart
-     * @param ProgressBar   $progress
-     *
-     * @throws Exception
-     * @throws ORMInvalidArgumentException
+     * @throws Throwable
      */
     private function createEntities(int $yearEnd, DateTime $dateStart, ProgressBar $progress): void
     {
@@ -213,20 +177,11 @@ class CreateDateDimensionEntitiesCommand extends Command
     /**
      * Getter method for year start validator closure.
      *
-     * @return Closure
-     *
      * @throws InvalidArgumentException
      */
     private function validatorYearStart(): Closure
     {
-        return /**
-         * @param int|string $year
-         *
-         * @return int
-         */
-        static function ($year): int {
-            $year = (int)$year;
-
+        return static function (int $year): int {
             if ($year < self::YEAR_MIN || $year > self::YEAR_MAX) {
                 $message = sprintf(
                     'Start year must be between %d and %d',
@@ -244,22 +199,11 @@ class CreateDateDimensionEntitiesCommand extends Command
     /**
      * Getter method for year end validator closure.
      *
-     * @param int $yearStart
-     *
-     * @return Closure
-     *
      * @throws InvalidArgumentException
      */
     private function validatorYearEnd(int $yearStart): Closure
     {
-        return /**
-         * @param int|string $year
-         *
-         * @return int
-         */
-        static function ($year) use ($yearStart): int {
-            $year = (int)$year;
-
+        return static function (int $year) use ($yearStart): int {
             if ($year < self::YEAR_MIN || $year > self::YEAR_MAX || $year < $yearStart) {
                 $message = sprintf(
                     'End year must be between %d and %d and after given start year %d',

@@ -17,6 +17,7 @@ use Closure;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 use function array_map;
 use function implode;
 use function sprintf;
@@ -25,30 +26,17 @@ use function sprintf;
  * Class ListUsersCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ListUsersCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserResource
-     */
-    private $userResource;
-
-    /**
-     * @var RolesService
-     */
-    private $roles;
+    private UserResource $userResource;
+    private RolesService $roles;
 
     /**
      * ListUsersCommand constructor.
-     *
-     * @param UserResource $userResource
-     * @param RolesService $roles
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserResource $userResource, RolesService $roles)
     {
@@ -62,18 +50,15 @@ class ListUsersCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
-        static $headers = [
+        $headers = [
             'Id',
             'Username',
             'Email',
@@ -85,13 +70,15 @@ class ListUsersCommand extends Command
         $io->title('Current users');
         $io->table($headers, $this->getRows());
 
-        return null;
+        return 0;
     }
 
     /**
      * Getter method for formatted user rows for console table.
      *
      * @return mixed[]
+     *
+     * @throws Throwable
      */
     private function getRows(): array
     {
@@ -99,38 +86,24 @@ class ListUsersCommand extends Command
     }
 
     /**
-     * Getter method for user formatter closure. This closure will format single User entity for console table.
-     *
-     * @return Closure
+     * Getter method for user formatter closure. This closure will format
+     * single User entity for console table.
      */
     private function getFormatterUser(): Closure
     {
-        return function (User $user): array {
-            return [
-                $user->getId(),
-                $user->getUsername(),
-                $user->getEmail(),
-                $user->getFirstName() . ' ' . $user->getLastName(),
-                implode(",\n", $this->roles->getInheritedRoles($user->getRoles())),
-                implode(",\n", $user->getUserGroups()->map($this->formatterUserGroup())->toArray()),
-            ];
-        };
-    }
+        $userGroupFormatter = static fn (UserGroup $userGroup): string => sprintf(
+            '%s (%s)',
+            $userGroup->getName(),
+            $userGroup->getRole()->getId()
+        );
 
-    /**
-     * Getter method for user group formatter closure. This closure will format single UserGroup entity for console
-     * table.
-     *
-     * @return Closure
-     */
-    private function formatterUserGroup(): Closure
-    {
-        return static function (UserGroup $userGroup): string {
-            return sprintf(
-                '%s (%s)',
-                $userGroup->getName(),
-                $userGroup->getRole()->getId()
-            );
-        };
+        return fn (User $user): array => [
+            $user->getId(),
+            $user->getUsername(),
+            $user->getEmail(),
+            $user->getFirstName() . ' ' . $user->getLastName(),
+            implode(",\n", $this->roles->getInheritedRoles($user->getRoles())),
+            implode(",\n", $user->getUserGroups()->map($userGroupFormatter)->toArray()),
+        ];
     }
 }

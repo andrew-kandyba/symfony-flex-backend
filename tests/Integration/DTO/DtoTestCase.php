@@ -10,12 +10,13 @@ namespace App\Tests\Integration\DTO;
 
 use App\DTO\RestDtoInterface;
 use App\Utils\Tests\PhpUnitUtil;
-use DomainException;
 use PHPUnit\Framework\MockObject\MockObject;
-use Psr\Log\InvalidArgumentException;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
+use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
+use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 use Throwable;
 use TypeError;
 use function array_filter;
@@ -23,26 +24,20 @@ use function array_map;
 use function count;
 use function gettype;
 use function is_object;
-use function preg_match;
-use function preg_replace;
-use function preg_split;
 use function sprintf;
-use function strncmp;
-use function trim;
 use function ucfirst;
 
 /**
  * Class DtoTestCase
  *
  * @package App\Tests\Integration\DTO
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class DtoTestCase extends KernelTestCase
 {
-    /**
-     * @var string
-     */
-    protected $dtoClass;
+    protected string $dtoClass;
+
+    private static ?PropertyInfoExtractor $propertyInfo = null;
 
     /**
      * @throws Throwable
@@ -84,8 +79,6 @@ abstract class DtoTestCase extends KernelTestCase
 
             static::assertTrue($dtoReflection->hasMethod($method), $message);
         }
-
-        unset($dtoReflection);
     }
 
     /**
@@ -100,10 +93,10 @@ abstract class DtoTestCase extends KernelTestCase
          * @var MockObject|RestDtoInterface $mock
          */
         $mock = $this->getMockBuilder($this->dtoClass)
-            ->setMethods(['setVisited'])
+            ->onlyMethods(['setVisited'])
             ->getMock();
 
-        $mock->expects(static::exactly(count($properties)))
+        $mock->expects(static::atLeast(count($properties)))
             ->method('setVisited');
 
         $expectedVisited = [];
@@ -117,10 +110,10 @@ abstract class DtoTestCase extends KernelTestCase
             $setter = 'set' . ucfirst($reflectionProperty->getName());
 
             // Call setter method
-            $mock->$setter($value);
+            $mock->{$setter}($value);
         }
 
-        static::assertEquals($expectedVisited, $mock->getVisited());
+        static::assertSame($expectedVisited, $mock->getVisited());
     }
 
     /**
@@ -132,7 +125,6 @@ abstract class DtoTestCase extends KernelTestCase
 
         $dto = new $this->dtoClass();
 
-        /** @var ReflectionProperty $reflectionProperty */
         foreach ($this->getDtoProperties() as $reflectionProperty) {
             // Get "valid" value for current property
             $value = $this->getValueForProperty($dtoReflection, $reflectionProperty);
@@ -142,19 +134,18 @@ abstract class DtoTestCase extends KernelTestCase
             $getter = 'get' . ucfirst($reflectionProperty->getName());
 
             // Call setter method
-            $dto->$setter($value);
+            $dto->{$setter}($value);
 
-            static::assertSame($value, $dto->$getter());
+            static::assertSame($value, $dto->{$getter}());
         }
     }
 
     /**
      * @dataProvider dataProviderTestThatSetterOnlyAcceptSpecifiedType
      *
-     * @param string $field
-     * @param string $type
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `setter` method for `$field` will fail if parameter is not `$type` type.
      */
     public function testThatSetterOnlyAcceptSpecifiedType(string $field, string $type): void
     {
@@ -166,7 +157,7 @@ abstract class DtoTestCase extends KernelTestCase
         $setter = 'set' . ucfirst($field);
 
         $dto = new $this->dtoClass();
-        $dto->$setter($value);
+        $dto->{$setter}($value);
 
         $message = sprintf(
             "Setter '%s' didn't fail with invalid value type '%s', maybe missing variable type?",
@@ -178,8 +169,6 @@ abstract class DtoTestCase extends KernelTestCase
     }
 
     /**
-     * @return array
-     *
      * @throws Throwable
      */
     public function dataProviderTestThatSetterOnlyAcceptSpecifiedType(): array
@@ -187,81 +176,53 @@ abstract class DtoTestCase extends KernelTestCase
         $iterator = function (ReflectionProperty $reflectionProperty) {
             return [
                 $reflectionProperty->getName(),
-                $this->parseType($reflectionProperty),
+                $this->getType($this->dtoClass, $reflectionProperty->getName()),
             ];
         };
 
         return array_map($iterator, $this->getDtoProperties());
     }
 
+    private static function initializePropertyExtractor(): void
+    {
+        // a full list of extractors is shown further below
+        $phpDocExtractor = new PhpDocExtractor();
+        $reflectionExtractor = new ReflectionExtractor();
+
+        // list of PropertyListExtractorInterface (any iterable)
+        $listExtractors = [$reflectionExtractor];
+
+        // list of PropertyTypeExtractorInterface (any iterable)
+        $typeExtractors = [$phpDocExtractor, $reflectionExtractor];
+
+        // list of PropertyDescriptionExtractorInterface (any iterable)
+        $descriptionExtractors = [$phpDocExtractor];
+
+        // list of PropertyAccessExtractorInterface (any iterable)
+        $accessExtractors = [$reflectionExtractor];
+
+        // list of PropertyInitializableExtractorInterface (any iterable)
+        $propertyInitializableExtractors = [$reflectionExtractor];
+
+        self::$propertyInfo = new PropertyInfoExtractor(
+            $listExtractors,
+            $typeExtractors,
+            $descriptionExtractors,
+            $accessExtractors,
+            $propertyInitializableExtractors
+        );
+    }
+
     /**
-     * @param ReflectionClass    $dtoReflection
-     * @param ReflectionProperty $reflectionProperty
-     *
-     * @return float|int|string
+     * @return mixed
      *
      * @throws Throwable
      */
     private function getValueForProperty(ReflectionClass $dtoReflection, ReflectionProperty $reflectionProperty)
     {
-        $type = $this->parseType($reflectionProperty);
-
-        if ($type === null) {
-            $message = sprintf(
-                "DTO class '%s' property '%s' does not have required '@var' annotation",
-                $dtoReflection->getName(),
-                $reflectionProperty->getName()
-            );
-
-            throw new DomainException($message);
-        }
-
-        return PhpUnitUtil::getValidValueForType($type);
-    }
-
-    /**
-     * @param ReflectionProperty $reflectionProperty
-     *
-     * @return null|string
-     */
-    private function parseType(ReflectionProperty $reflectionProperty): ?string
-    {
-        $output = null;
-
-        foreach (preg_split("/(\r?\n)/", $reflectionProperty->getDocComment()) as $line) {
-            // if starts with an asterisk
-            if (preg_match('/^(?=\s+?\*[^\/])(.+)/', $line, $matches)) {
-                $info = $matches[1];
-
-                // remove wrapping whitespace
-                $info = trim($info);
-
-                // remove leading asterisk
-                $info = preg_replace('/^(\*\s+?)/', '', $info);
-
-                if (strncmp($info, '@', 1) === 0) {
-                    // get the name of the param
-                    preg_match('/@var (.*)/', $info, $matches);
-
-                    if (!$matches) {
-                        $message = sprintf(
-                            'Cannot determine parameter type for "%s"',
-                            $info
-                        );
-
-                        throw new InvalidArgumentException($message);
-                    }
-
-                    if ($matches[1]) {
-                        $output = trim($matches[1]);
-
-                        break;
-                    }
-                }
-            }
-        }
-
-        return $output;
+        return PhpUnitUtil::getValidValueForType(
+            $this->getType($dtoReflection->getName(), $reflectionProperty->getName())
+        );
     }
 
     /**
@@ -275,15 +236,32 @@ abstract class DtoTestCase extends KernelTestCase
         $dtoReflection = new ReflectionClass($dtoClass);
         $dto = new $dtoClass();
 
-        $filter = static function (ReflectionProperty $reflectionProperty) use ($dto, $dtoClass) {
-            return !$reflectionProperty->isStatic()
-                && ($dtoClass === $reflectionProperty->getDeclaringClass()->getName()
-                    || $reflectionProperty->getDeclaringClass()->isInstance($dto));
-        };
+        $filter = fn (ReflectionProperty $reflectionProperty) =>
+            !$reflectionProperty->isStatic()
+            && !$reflectionProperty->isPrivate()
+            && (
+                $dtoClass === $reflectionProperty->getDeclaringClass()->getName()
+                || $reflectionProperty->getDeclaringClass()->isInstance($dto)
+            );
 
-        /** @var ReflectionProperty[] $properties */
-        $properties = array_filter($dtoReflection->getProperties(), $filter);
+        /* @var ReflectionProperty[] $properties */
+        return array_filter($dtoReflection->getProperties(), $filter);
+    }
 
-        return $properties;
+    private function getType(string $class, string $property): string
+    {
+        if (self::$propertyInfo === null) {
+            self::initializePropertyExtractor();
+        }
+
+        $types = self::$propertyInfo->getTypes($class, $property);
+
+        $type = $types[0]->getBuiltinType();
+
+        if ($type === 'object') {
+            $type = $types[0]->getClassName();
+        }
+
+        return $type;
     }
 }

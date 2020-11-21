@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 use function array_map;
 use function array_sum;
 use function sprintf;
@@ -24,36 +25,18 @@ use function sprintf;
  * Class CreateRolesCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class CreateRolesCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var EntityManagerInterface
-     */
-    private $entityManager;
-
-    /**
-     * @var RoleRepository
-     */
-    private $roleRepository;
-
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
+    private EntityManagerInterface $entityManager;
+    private RoleRepository $roleRepository;
+    private RolesService $rolesService;
 
     /**
      * CreateRolesCommand constructor.
-     *
-     * @param EntityManagerInterface $entityManager
-     * @param RoleRepository         $roleRepository
-     * @param RolesService           $rolesService
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -69,32 +52,19 @@ class CreateRolesCommand extends Command
         $this->setDescription('Console command to create roles to database');
     }
 
-    /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
-     *
-     * @param InputInterface  $input  An InputInterface instance
-     * @param OutputInterface $output An OutputInterface instance
-     *
-     * @return int|null null or 0 if everything went fine, or an error code
-     *
-     * @throws \Doctrine\ORM\TransactionRequiredException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Doctrine\ORM\ORMException
+     * @noinspection PhpMissingParentCallCommonInspection
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
-        /**
-         * @param string $role
-         * @return int
-         */
-        $iterator = function (string $role): int {
-            return $this->createRole($role);
-        };
-
-        $created = array_sum(array_map($iterator, $this->rolesService->getRoles()));
+        $created = array_sum(
+            array_map(
+                fn (string $role): int => $this->createRole($role),
+                $this->rolesService->getRoles()
+            )
+        );
 
         $this->entityManager->flush();
 
@@ -110,19 +80,14 @@ class CreateRolesCommand extends Command
             $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 
     /**
-     * Method to check if specified role exists on database and if not create and persist it to database.
+     * Method to check if specified role exists on database and if not create
+     * and persist it to database.
      *
-     * @param string $role
-     *
-     * @return int
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Doctrine\ORM\TransactionRequiredException
+     * @throws Throwable
      */
     private function createRole(string $role): int
     {
@@ -140,11 +105,10 @@ class CreateRolesCommand extends Command
     }
 
     /**
-     * Method to clean existing roles from database that does not really exists.
+     * Method to clean existing roles from database that does not really
+     * exists.
      *
-     * @param string[] $roles
-     *
-     * @return int
+     * @param array<int, string> $roles
      */
     private function clearRoles(array $roles): int
     {

@@ -15,7 +15,7 @@ use Throwable;
  * Class DocumentationTest
  *
  * @package App\Tests\Functional
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class DocumentationTest extends WebTestCase
 {
@@ -28,8 +28,6 @@ class DocumentationTest extends WebTestCase
         $client->request('GET', '/api/doc/');
 
         static::assertSame(200, $client->getResponse()->getStatusCode());
-
-        unset($client);
     }
 
     /**
@@ -41,7 +39,5 @@ class DocumentationTest extends WebTestCase
         $client->request('GET', '/api/doc.json');
 
         static::assertSame(200, $client->getResponse()->getStatusCode());
-
-        unset($client);
     }
 }

@@ -16,11 +16,11 @@ use App\Resource\LogRequestResource;
  * Class LogRequestResourceTest
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogRequestResourceTest extends ResourceTestCase
 {
-    protected $entityClass = LogRequest::class;
-    protected $repositoryClass = LogRequestRepository::class;
-    protected $resourceClass = LogRequestResource::class;
+    protected string $entityClass = LogRequest::class;
+    protected string $repositoryClass = LogRequestRepository::class;
+    protected string $resourceClass = LogRequestResource::class;
 }

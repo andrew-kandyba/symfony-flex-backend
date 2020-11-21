@@ -21,21 +21,16 @@ use Throwable;
  */
 class BlameableDecorator extends BlameableListener
 {
-    /**
-     * @var UserResource
-     */
-    private $userResource;
+    private UserResource $userResource;
 
     /**
-     * @param UserResource $userResource
-     *
-     * @return BlameableDecorator
+     * BlameableDecorator constructor.
      */
-    public function setUserResource(UserResource $userResource): self
+    public function __construct(UserResource $userResource)
     {
-        $this->userResource = $userResource;
+        parent::__construct();
 
-        return $this;
+        $this->userResource = $userResource;
     }
 
     /**
@@ -46,7 +41,7 @@ class BlameableDecorator extends BlameableListener
     public function setUserValue($user): void
     {
         if ($user instanceof SecurityUser) {
-            $user = $this->userResource->findOne($user->getUuid());
+            $user = $this->userResource->getReference($user->getUuid());
         }
 
         parent::setUserValue($user);

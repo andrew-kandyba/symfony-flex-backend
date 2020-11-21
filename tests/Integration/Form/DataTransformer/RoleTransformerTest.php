@@ -21,20 +21,35 @@ use Throwable;
  * Class RoleTransformerTest
  *
  * @package App\Tests\Integration\Form\Console\DataTransformer
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleTransformerTest extends KernelTestCase
 {
     /**
      * @var MockObject|RoleResource
      */
-    private $roleResource;
+    private MockObject $roleResource;
+
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->roleResource = $this
+            ->getMockBuilder(RoleResource::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+    }
 
     /**
      * @dataProvider dataProviderTestThatTransformReturnsExpected
      *
      * @param mixed $expected
      * @param mixed $input
+     *
+     * @testdox Test that `transform` method returns `$expected` when using `$input` input.
      */
     public function testThatTransformReturnsExpected($expected, $input): void
     {
@@ -43,22 +58,26 @@ class RoleTransformerTest extends KernelTestCase
         static::assertSame($expected, $transformer->transform($input));
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testThatReverseTransformCallsExpectedObjectManagerMethods(): void
     {
-        $entity = new Role();
+        $entity = new Role('Some Role');
 
         $this->roleResource
             ->expects(static::once())
             ->method('findOne')
-            ->with('role_name')
+            ->with($entity->getId())
             ->willReturn($entity);
 
-        $transformer = new RoleTransformer($this->roleResource);
-        $transformer->reverseTransform('role_name');
-
-        unset($transformer, $entity);
+        (new RoleTransformer($this->roleResource))
+            ->reverseTransform($entity->getId());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testThatReverseTransformThrowsAnException(): void
     {
         $this->expectException(TransformationFailedException::class);
@@ -70,62 +89,37 @@ class RoleTransformerTest extends KernelTestCase
             ->with('role_name')
             ->willReturn(null);
 
-        $transformer = new RoleTransformer($this->roleResource);
-        $transformer->reverseTransform('role_name');
-
-        unset($transformer);
-    }
-
-    public function testThatReverseTransformReturnsExpected(): void
-    {
-        $entity = new Role();
-
-        $this->roleResource
-            ->expects(static::once())
-            ->method('findOne')
-            ->with('rolename')
-            ->willReturn($entity);
-
-        $transformer = new RoleTransformer($this->roleResource);
-
-        static::assertSame($entity, $transformer->reverseTransform('rolename'));
-
-        unset($transformer, $entity);
-    }
-
-    /**
-     * @return Generator
-     */
-    public function dataProviderTestThatTransformReturnsExpected(): Generator
-    {
-        yield ['', null];
-
-        $entity = new Role();
-
-        yield [$entity->getId(), $entity];
+        (new RoleTransformer($this->roleResource))
+            ->reverseTransform('role_name');
     }
 
     /**
      * @throws Throwable
      */
-    protected function setUp(): void
+    public function testThatReverseTransformReturnsExpected(): void
     {
-        gc_enable();
+        $entity = new Role('Some Role');
 
-        parent::setUp();
+        $this->roleResource
+            ->expects(static::once())
+            ->method('findOne')
+            ->with('Some Role')
+            ->willReturn($entity);
 
-        $this->roleResource = $this
-            ->getMockBuilder(RoleResource::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $transformer = new RoleTransformer($this->roleResource);
+
+        static::assertSame($entity, $transformer->reverseTransform('Some Role'));
     }
 
-    protected function tearDown(): void
+    /**
+     * @throws Throwable
+     */
+    public function dataProviderTestThatTransformReturnsExpected(): Generator
     {
-        parent::tearDown();
+        yield ['', null];
 
-        unset($this->roleResource);
+        $entity = new Role('some role');
 
-        gc_collect_cycles();
+        yield [$entity->getId(), $entity];
     }
 }

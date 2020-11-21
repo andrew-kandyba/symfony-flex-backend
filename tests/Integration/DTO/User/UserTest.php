@@ -9,7 +9,7 @@ declare(strict_types = 1);
 namespace App\Tests\Integration\DTO\User;
 
 use App\DTO\User\User as UserDto;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Role as RoleEntity;
 use App\Entity\User as UserEntity;
 use App\Entity\UserGroup as UserGroupEntity;
@@ -22,11 +22,11 @@ use function count;
  * Class UserTest
  *
  * @package App\Tests\Integration\DTO
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserTest extends DtoTestCase
 {
-    protected $dtoClass = UserDto::class;
+    protected string $dtoClass = UserDto::class;
 
     public function testThatLoadMethodWorks(): void
     {
@@ -34,21 +34,21 @@ class UserTest extends DtoTestCase
         $roleEntity = new RoleEntity('test role');
 
         // Create UserGroup entity
-        $userGroupEntity = new UserGroupEntity();
-        $userGroupEntity->setName('test user group');
-        $userGroupEntity->setRole($roleEntity);
+        $userGroupEntity = (new UserGroupEntity())
+            ->setName('test user group')
+            ->setRole($roleEntity);
 
         // Create User entity
-        $userEntity = new UserEntity();
-        $userEntity->setUsername('username');
-        $userEntity->setFirstName('first name');
-        $userEntity->setLastName('last name');
-        $userEntity->setEmail('firstname.surname@test.com');
-        $userEntity->addUserGroup($userGroupEntity);
+        $userEntity = (new UserEntity())
+            ->setUsername('username')
+            ->setFirstName('first name')
+            ->setLastName('last name')
+            ->setEmail('firstname.surname@test.com')
+            ->addUserGroup($userGroupEntity);
 
         /** @var UserDto $dto */
-        $dto = new $this->dtoClass();
-        $dto->load($userEntity);
+        $dto = (new $this->dtoClass())
+            ->load($userEntity);
 
         static::assertSame('username', $dto->getUsername());
         static::assertSame('first name', $dto->getFirstName());
@@ -64,7 +64,6 @@ class UserTest extends DtoTestCase
     {
         /** @var MockObject|EntityInterface $entity */
         $entity = $this->getMockBuilder(UserEntity::class)
-            ->setMethods(['getId', 'setPlainPassword'])
             ->getMock();
 
         $entity
@@ -72,10 +71,9 @@ class UserTest extends DtoTestCase
             ->method('setPlainPassword')
             ->with('password');
 
-        /** @var UserDto $dto */
-        $dto = new $this->dtoClass();
-        $dto->setPassword('password');
-        $dto->update($entity);
+        (new $this->dtoClass())
+            ->setPassword('password')
+            ->update($entity);
     }
 
     /**
@@ -90,7 +88,6 @@ class UserTest extends DtoTestCase
 
         /** @var MockObject|UserEntity $entity */
         $entity = $this->getMockBuilder(UserEntity::class)
-            ->setMethods(['getId', 'clearUserGroups', 'addUserGroup'])
             ->getMock();
 
         $entity
@@ -102,9 +99,8 @@ class UserTest extends DtoTestCase
             ->method('addUserGroup')
             ->willReturn($entity);
 
-        /** @var UserDto $dto */
-        $dto = new $this->dtoClass();
-        $dto->setUserGroups($userGroups);
-        $dto->update($entity);
+        (new $this->dtoClass())
+            ->setUserGroups($userGroups)
+            ->update($entity);
     }
 }

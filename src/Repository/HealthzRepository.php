@@ -12,37 +12,35 @@ use App\Entity\Healthz as Entity;
 use DateInterval;
 use DateTime;
 use DateTimeZone;
+use Doctrine\ORM\NonUniqueResultException;
+use Exception;
+use Throwable;
 
 /**
  * Class HealthzRepository
  *
  * @package App\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  *
  * @codingStandardsIgnoreStart
  *
- * @method Entity|null                           find(string $id, ?int $lockMode = null, ?int $lockVersion = null): ?Entity
- * @method array<array-key|Entity, mixed>|Entity findAdvanced(string $id, $hydrationMode = null)
- * @method Entity|null                           findOneBy(array $criteria, ?array $orderBy = null): ?Entity
- * @method Entity[]                              findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null): array
- * @method Entity[]                              findByAdvanced(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null, ?array $search = null): array
- * @method Entity[]                              findAll(): array
+ * @method Entity|null find(string $id, ?int $lockMode = null, ?int $lockVersion = null)
+ * @method array<int, Entity> findAdvanced(string $id, $hydrationMode = null)
+ * @method Entity|null findOneBy(array $criteria, ?array $orderBy = null)
+ * @method array<int, Entity> findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null)
+ * @method array<int, Entity> findByAdvanced(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null, ?array $search = null)
+ * @method array<int, Entity> findAll()
  *
  * @codingStandardsIgnoreEnd
  */
 class HealthzRepository extends BaseRepository
 {
-    /**
-     * @var string
-     */
-    protected static $entityName = Entity::class;
+    protected static string $entityName = Entity::class;
 
     /**
      * Method to read value from database
      *
-     * @return Entity|null
-     *
-     * @throws \Doctrine\ORM\NonUniqueResultException
+     * @throws NonUniqueResultException
      */
     public function read(): ?Entity
     {
@@ -59,11 +57,7 @@ class HealthzRepository extends BaseRepository
     /**
      * Method to write new value to database.
      *
-     * @return Entity
-     *
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Doctrine\ORM\ORMInvalidArgumentException
-     * @throws \Doctrine\ORM\ORMException
+     * @throws Throwable
      */
     public function create(): Entity
     {
@@ -79,14 +73,12 @@ class HealthzRepository extends BaseRepository
     /**
      * Method to cleanup 'healthz' table.
      *
-     * @return int
-     *
-     * @throws \Exception
+     * @throws Exception
      */
     public function cleanup(): int
     {
         // Determine date
-        $date = new DateTime('NOW', new DateTimeZone('UTC'));
+        $date = new DateTime('now', new DateTimeZone('UTC'));
         $date->sub(new DateInterval('P7D'));
 
         // Create query builder

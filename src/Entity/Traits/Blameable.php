@@ -17,40 +17,38 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * Trait Blameable
  *
  * @package App\Entity\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait Blameable
 {
     /**
-     * @var User|null
-     *
      * @Gedmo\Blameable(on="create")
      *
      * @Groups({
-     *     "Role.createdBy",
-     *     "User.createdBy",
-     *     "UserGroup.createdBy",
+     *      "ApiKey.createdBy",
+     *      "Role.createdBy",
+     *      "User.createdBy",
+     *      "UserGroup.createdBy",
      *  })
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\User")
      * @ORM\JoinColumn(
-     *     name="created_by_id",
-     *     referencedColumnName="id",
-     *     nullable=true,
-     *     onDelete="SET NULL",
+     *      name="created_by_id",
+     *      referencedColumnName="id",
+     *      nullable=true,
+     *      onDelete="SET NULL",
      *  )
      */
-    protected $createdBy;
+    protected ?User $createdBy = null;
 
     /**
-     * @var User|null
-     *
      * @Gedmo\Blameable(on="update")
      *
      * @Groups({
-     *     "Role.updatedBy",
-     *     "User.updatedBy",
-     *     "UserGroup.updatedBy",
+     *      "ApiKey.updatedBy",
+     *      "Role.updatedBy",
+     *      "User.updatedBy",
+     *      "UserGroup.updatedBy",
      *  })
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\User")
@@ -61,21 +59,13 @@ trait Blameable
      *      onDelete="SET NULL",
      *  )
      */
-    protected $updatedBy;
+    protected ?User $updatedBy = null;
 
-    /**
-     * @return User|null
-     */
     public function getCreatedBy(): ?User
     {
         return $this->createdBy;
     }
 
-    /**
-     * @param User|null $createdBy
-     *
-     * @return $this
-     */
     public function setCreatedBy(?User $createdBy = null): self
     {
         $this->createdBy = $createdBy;
@@ -83,19 +73,11 @@ trait Blameable
         return $this;
     }
 
-    /**
-     * @return User|null
-     */
     public function getUpdatedBy(): ?User
     {
         return $this->updatedBy;
     }
 
-    /**
-     * @param User|null $updatedBy
-     *
-     * @return $this
-     */
     public function setUpdatedBy(?User $updatedBy = null): self
     {
         $this->updatedBy = $updatedBy;

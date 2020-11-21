@@ -8,10 +8,11 @@ declare(strict_types = 1);
 
 namespace App\Request\ParamConverter;
 
-use App\Resource\Collection;
+use App\Resource\ResourceCollection;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Sensio\Bundle\FrameworkExtraBundle\Request\ParamConverter\ParamConverterInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Throwable;
 
 /** @noinspection AnnotationMissingUseInspection */
 /** @noinspection PhpUndefinedClassInspection */
@@ -21,16 +22,16 @@ use Symfony\Component\HttpFoundation\Request;
  * This is meant to be used within controller actions that uses @ParamConverter annotation. Example:
  *  /**
  *   * @Route(
- *   *    "/{userEntity}",
- *   *    requirements={
- *   *        "userEntity" = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
- *   *    }
+ *   * "/{userEntity}",
+ *   * requirements={
+ *   * "userEntity" = "%app.uuid_v1_regex%",
+ *   * }
  *   * )
  *   *
  *   * @ParamConverter(
- *   *      "userEntity",
- *   *      class="App\Resource\UserResource",
- *   *  )
+ *   * "userEntity",
+ *   * class="App\Resource\UserResource",
+ *   * )
  *   *
  *   * @param User $collection
  *   *\/
@@ -42,56 +43,38 @@ use Symfony\Component\HttpFoundation\Request;
  * Purpose of this param converter is to use exactly same methods and workflow as in basic REST API requests.
  *
  * @package App\Request\ParamConverter
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RestResourceConverter implements ParamConverterInterface
 {
-    /**
-     * @var Collection
-     */
-    private $collection;
+    private ResourceCollection $collection;
 
     /**
      * RestResourceConverter constructor.
-     *
-     * @param Collection $collection
      */
-    public function __construct(Collection $collection)
+    public function __construct(ResourceCollection $collection)
     {
         $this->collection = $collection;
     }
 
     /**
-     * Stores the object in the request.
+     * {@inheritdoc}
      *
-     * @param Request        $request
-     * @param ParamConverter $configuration Contains the name, class and options of the object
-     *
-     * @return bool True if the object has been successfully set, else false
-     *
-     * @throws \InvalidArgumentException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     * @throws Throwable
      */
     public function apply(Request $request, ParamConverter $configuration): bool
     {
         $name = $configuration->getName();
-        $identifier = $request->attributes->get($name, false);
+        $identifier = (string)$request->attributes->get($name, '');
         $resource = $this->collection->get($configuration->getClass());
 
-        if ($identifier !== false) {
+        if ($identifier !== '') {
             $request->attributes->set($name, $resource->findOne($identifier, true));
         }
 
         return true;
     }
 
-    /**
-     * Checks if the object is supported.
-     *
-     * @param ParamConverter $configuration
-     *
-     * @return bool
-     */
     public function supports(ParamConverter $configuration): bool
     {
         return $this->collection->has($configuration->getClass());

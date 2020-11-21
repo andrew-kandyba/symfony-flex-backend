@@ -8,13 +8,14 @@ declare(strict_types = 1);
 
 namespace App\Command\User;
 
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\User as UserEntity;
 use App\Entity\UserGroup as UserGroupEntity;
 use App\Resource\UserGroupResource;
 use App\Resource\UserResource;
 use Closure;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 use function array_map;
 use function sprintf;
 
@@ -22,25 +23,15 @@ use function sprintf;
  * Class UserHelper
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserHelper
 {
-    /**
-     * @var UserResource
-     */
-    private $userResource;
-
-    /**
-     * @var UserGroupResource
-     */
-    private $userGroupResource;
+    private UserResource $userResource;
+    private UserGroupResource $userGroupResource;
 
     /**
      * UserHelper constructor.
-     *
-     * @param UserResource      $userResource
-     * @param UserGroupResource $userGroupResource
      */
     public function __construct(UserResource $userResource, UserGroupResource $userGroupResource)
     {
@@ -49,17 +40,15 @@ class UserHelper
     }
 
     /**
-     * Method to get user entity. Also note that this may return a null in cases that user do not want to make any
-     * changes to users.
+     * Method to get user entity. Also note that this may return a null in
+     * cases that user do not want to make any changes to users.
      *
-     * @param SymfonyStyle $io
-     * @param string       $question
-     *
-     * @return UserEntity|null
+     * @throws Throwable
      */
     public function getUser(SymfonyStyle $io, string $question): ?UserEntity
     {
         $userFound = false;
+        $userEntity = null;
 
         while ($userFound !== true) {
             /** @var UserEntity|null $userEntity */
@@ -76,17 +65,15 @@ class UserHelper
     }
 
     /**
-     * Method to get user group entity. Also note that this may return a null in cases that user do not want to make any
-     * changes to user groups.
+     * Method to get user group entity. Also note that this may return a null
+     * in cases that user do not want to make any changes to user groups.
      *
-     * @param SymfonyStyle $io
-     * @param string       $question
-     *
-     * @return UserGroupEntity|null
+     * @throws Throwable
      */
     public function getUserGroup(SymfonyStyle $io, string $question): ?UserGroupEntity
     {
         $userGroupFound = false;
+        $userGroupEntity = null;
 
         while ($userGroupFound !== true) {
             /** @var UserGroupEntity|null $userGroupEntity */
@@ -103,12 +90,12 @@ class UserHelper
     }
 
     /**
-     * Method to get User entity. Within this user will be asked which User entity he/she wants to process with.
-     *
-     * @param SymfonyStyle $io
-     * @param string       $question
+     * Method to get User entity. Within this user will be asked which User
+     * entity he/she wants to process with.
      *
      * @return UserEntity|EntityInterface|null
+     *
+     * @throws Throwable
      */
     private function getUserEntity(SymfonyStyle $io, string $question): ?EntityInterface
     {
@@ -119,17 +106,16 @@ class UserHelper
 
         $choices['Exit'] = 'Exit command';
 
-        return $this->userResource->findOne($io->choice($question, $choices));
+        return $this->userResource->findOne((string)$io->choice($question, $choices));
     }
 
     /**
-     * Method to get UserGroup entity. Within this user will be asked which UserGroup entity he/she wants to process
-     * with.
-     *
-     * @param SymfonyStyle $io
-     * @param string       $question
+     * Method to get UserGroup entity. Within this user will be asked which
+     * UserGroup entity he/she wants to process with.
      *
      * @return UserGroupEntity|EntityInterface|null
+     *
+     * @throws Throwable
      */
     private function getUserGroupEntity(SymfonyStyle $io, string $question): ?EntityInterface
     {
@@ -140,15 +126,14 @@ class UserHelper
 
         $choices['Exit'] = 'Exit command';
 
-        return $this->userGroupResource->findOne($io->choice($question, $choices));
+        return $this->userGroupResource->findOne((string)$io->choice($question, $choices));
     }
 
     /**
-     * Getter method for user formatter closure. This closure will format single User entity for choice list.
+     * Getter method for user formatter closure. This closure will format
+     * single User entity for choice list.
      *
-     * @param mixed[] $choices
-     *
-     * @return Closure
+     * @param array<int, string> $choices
      */
     private function getUserIterator(array &$choices): Closure
     {
@@ -166,11 +151,10 @@ class UserHelper
     }
 
     /**
-     * Getter method for user group formatter closure. This closure will format single UserGroup entity for choice list.
+     * Getter method for user group formatter closure. This closure will format
+     * single UserGroup entity for choice list.
      *
      * @param mixed[] $choices
-     *
-     * @return Closure
      */
     private function getUserGroupIterator(array &$choices): Closure
     {
@@ -180,12 +164,8 @@ class UserHelper
     }
 
     /**
-     * Helper method to confirm user that he/she has chosen correct User entity to process with.
-     *
-     * @param SymfonyStyle $io
-     * @param UserEntity   $userEntity
-     *
-     * @return bool
+     * Helper method to confirm user that he/she has chosen correct User
+     * entity to process with.
      */
     private function isCorrectUser(SymfonyStyle $io, UserEntity $userEntity): bool
     {
@@ -202,12 +182,8 @@ class UserHelper
     }
 
     /**
-     * Helper method to confirm user that he/she has chosen correct UserGroup entity to process with.
-     *
-     * @param SymfonyStyle    $io
-     * @param UserGroupEntity $userGroupEntity
-     *
-     * @return bool
+     * Helper method to confirm user that he/she has chosen correct UserGroup
+     * entity to process with.
      */
     private function isCorrectUserGroup(SymfonyStyle $io, UserGroupEntity $userGroupEntity): bool
     {

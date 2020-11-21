@@ -9,6 +9,7 @@ declare(strict_types = 1);
 namespace App\Tests\Integration\Entity;
 
 use App\Entity\DateDimension;
+use App\Entity\Interfaces\EntityInterface;
 use App\Utils\Tests\PhpUnitUtil;
 use DateTime;
 use Exception;
@@ -21,25 +22,24 @@ use function ucfirst;
  * Class DateDimensionTest
  *
  * @package App\Tests\Integration\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class DateDimensionTest extends EntityTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = DateDimension::class;
+    protected string $entityName = DateDimension::class;
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
      * @param string $field
      * @param string $type
-     * @param array  $meta
+     * @param array $meta
+     *
+     * @testdox No setter for `$field` field in read only entity - so cannot test this.
      */
     public function testThatSetterOnlyAcceptSpecifiedType(
-        string $field = null,
-        string $type = null,
-        array $meta = null
+        ?string $field = null,
+        ?string $type = null,
+        ?array $meta = null
     ): void {
         static::markTestSkipped('There is not setter in read only entity...');
     }
@@ -48,12 +48,14 @@ class DateDimensionTest extends EntityTestCase
     /**
      * @param string $field
      * @param string $type
-     * @param array  $meta
+     * @param array $meta
+     *
+     * @testdox No setter for `$field` field in read only entity - so cannot test this.
      */
     public function testThatSetterReturnsInstanceOfEntity(
-        string $field = null,
-        string $type = null,
-        array $meta = null
+        ?string $field = null,
+        ?string $type = null,
+        ?array $meta = null
     ): void {
         static::markTestSkipped('There is not setter in read only entity...');
     }
@@ -62,11 +64,9 @@ class DateDimensionTest extends EntityTestCase
     /**
      * @dataProvider dataProviderTestThatSetterAndGettersWorks
      *
-     * @param string $field
-     * @param string $type
-     * @param array  $meta
-     *
      * @throws Throwable
+     *
+     * @testdox Test that getter method for `$field` with `$type` returns expected.
      */
     public function testThatGetterReturnsExpectedValue(string $field, string $type, array $meta): void
     {
@@ -82,13 +82,11 @@ class DateDimensionTest extends EntityTestCase
             if (static::isType($type)) {
                 $method = 'assertIs' . ucfirst($type);
 
-                static::$method($dateDimension->$getter());
+                static::$method($dateDimension->{$getter}());
             }
-        } /** @noinspection BadExceptionsProcessingInspection */ catch (Exception $error) {
-            static::assertInstanceOf($type, $dateDimension->$getter());
+        } catch (\Throwable $error) {
+            static::assertInstanceOf($type, $dateDimension->{$getter}(), $error->getMessage());
         }
-
-        unset($dateDimension);
     }
 
     /**
@@ -112,7 +110,15 @@ class DateDimensionTest extends EntityTestCase
         static::assertSame((bool)$dateTime->format('L'), $entity->isLeapYear());
         static::assertSame((int)$dateTime->format('o'), $entity->getWeekNumberingYear());
         static::assertSame((int)$dateTime->format('U'), $entity->getUnixTime());
+    }
 
-        unset($entity, $dateTime);
+    /**
+     * @noinspection PhpMissingParentCallCommonInspection
+     *
+     * @throws Exception
+     */
+    protected function getEntity(): EntityInterface
+    {
+        return new $this->entityName(new DateTime());
     }
 }

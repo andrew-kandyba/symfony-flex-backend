@@ -10,11 +10,11 @@ namespace App\Tests\Integration\Resource;
 
 use App\DTO\RestDtoInterface;
 use App\DTO\User\User as UserDto;
-use App\Entity\EntityInterface;
+use App\Entity\ApiKey as ApiKeyEntity;
 use App\Entity\User as UserEntity;
 use App\Repository\UserRepository;
 use App\Resource\UserResource;
-use App\Rest\RepositoryInterface;
+use App\Utils\Tests\StringableArrayObject;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Generator;
@@ -33,34 +33,33 @@ use function get_class;
  * Class GenericResourceTest
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class GenericResourceTest extends KernelTestCase
 {
-    private $dtoClass = UserDto::class;
-    private $resourceClass = UserResource::class;
-    private $entityClass = UserEntity::class;
+    private string $dtoClass = UserDto::class;
+    private string $resourceClass = UserResource::class;
+    private string $entityClass = UserEntity::class;
+    private UserResource $resource;
 
-    /**
-     * @var UserResource
-     */
-    private $resource;
-
-    /**
-     * @return EntityManagerInterface|Object
-     */
-    private static function getEntityManager(): EntityManagerInterface
+    protected function setUp(): void
     {
-        return static::$container->get('doctrine')->getManager();
+        parent::setUp();
+
+        static::bootKernel();
+
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->resource = static::$container->get($this->resourceClass);
     }
 
     public function testThatGetDtoClassThrowsAnExceptionWithoutDto(): void
     {
         $this->expectException(UnexpectedValueException::class);
-        $this->expectExceptionMessageRegExp('/DTO class not specified for \'.*\' resource/');
+        $this->expectExceptionMessageMatches('/DTO class not specified for \'.*\' resource/');
 
-        $this->resource->setDtoClass('');
-        $this->resource->getDtoClass();
+        $this->resource
+            ->setDtoClass('')
+            ->getDtoClass();
     }
 
     public function testThatGetDtoClassReturnsExpectedDto(): void
@@ -82,10 +81,9 @@ class GenericResourceTest extends KernelTestCase
             ->expects(static::once())
             ->method('getEntityName');
 
-        $this->resource->setRepository($repository);
-        $this->resource->getEntityName();
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->getEntityName();
     }
 
     /**
@@ -100,10 +98,9 @@ class GenericResourceTest extends KernelTestCase
             ->expects(static::once())
             ->method('getReference');
 
-        $this->resource->setRepository($repository);
-        $this->resource->getReference('some id');
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->getReference('some id');
     }
 
     /**
@@ -118,10 +115,9 @@ class GenericResourceTest extends KernelTestCase
             ->expects(static::once())
             ->method('getAssociations');
 
-        $this->resource->setRepository($repository);
-        $this->resource->getAssociations();
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->getAssociations();
     }
 
     /**
@@ -150,8 +146,6 @@ class GenericResourceTest extends KernelTestCase
             RestDtoInterface::class,
             $this->resource->getDtoForEntity('some id', get_class($dto), $dto)
         );
-
-        unset($dto, $repository, $entity);
     }
 
     /**
@@ -174,23 +168,21 @@ class GenericResourceTest extends KernelTestCase
         /** @var MockObject|RestDtoInterface $dto */
         $dto = $this->getDtoMockBuilder()->getMock();
 
-        $this->resource->setRepository($repository);
-        $this->resource->getDtoForEntity('some id', get_class($dto), $dto);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->getDtoForEntity('some id', get_class($dto), $dto);
     }
 
     /**
      * @dataProvider dataProviderTestThatFindCallsExpectedRepositoryMethodWithCorrectParameters
      *
-     * @param array $expectedArguments
-     * @param array $arguments
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `findByAdvanced` method is called with `$expectedArguments` when using `$arguments` arguments.
      */
     public function testThatFindCallsExpectedRepositoryMethodWithCorrectParameters(
-        array $expectedArguments,
-        array $arguments
+        StringableArrayObject $expectedArguments,
+        StringableArrayObject $arguments
     ): void {
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
@@ -198,12 +190,11 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findByAdvanced')
-            ->with(...$expectedArguments);
+            ->with(...$expectedArguments->getArrayCopy());
 
-        $this->resource->setRepository($repository);
-        $this->resource->find(...$arguments);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->find(...$arguments->getArrayCopy());
     }
 
     /**
@@ -217,12 +208,11 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findAdvanced')
-            ->withAnyParameters();
+            ->with('some id');
 
-        $this->resource->setRepository($repository);
-        $this->resource->findOne('some id');
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->findOne('some id');
     }
 
     /**
@@ -239,13 +229,12 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findAdvanced')
-            ->withAnyParameters()
+            ->with('some id')
             ->willReturn(null);
 
-        $this->resource->setRepository($repository);
-        $this->resource->findOne('some id', true);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->findOne('some id', true);
     }
 
     /**
@@ -261,27 +250,24 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findAdvanced')
-            ->withAnyParameters()
+            ->with('some id')
             ->willReturn($entity);
 
         $this->resource->setRepository($repository);
 
         static::assertSame($entity, $this->resource->findOne('some id', true));
-
-        unset($repository, $entity);
     }
 
     /**
      * @dataProvider dataProviderTestThatFindOneByCallsExpectedRepositoryMethodWithCorrectParameters
      *
-     * @param array $expectedArguments
-     * @param array $arguments
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `findOneBy` method is called with `$expectedArguments` when using `$arguments` arguments.
      */
     public function testThatFindOneByCallsExpectedRepositoryMethodWithCorrectParameters(
-        array $expectedArguments,
-        array $arguments
+        StringableArrayObject $expectedArguments,
+        StringableArrayObject $arguments
     ): void {
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
@@ -289,16 +275,14 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findOneBy')
-            ->with(...$expectedArguments);
+            ->with(...$expectedArguments->getArrayCopy());
 
-        $this->resource->setRepository($repository);
-        $this->resource->findOneBy(...$arguments);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->findOneBy(...$arguments->getArrayCopy());
     }
 
     /**
-     *
      * @throws Throwable
      */
     public function testThatFindOneByThrowsAnExceptionIfEntityWasNotFound(): void
@@ -312,13 +296,12 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findOneBy')
-            ->withAnyParameters()
+            ->with([], [])
             ->willReturn(null);
 
-        $this->resource->setRepository($repository);
-        $this->resource->findOneBy([], null, true);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->findOneBy([], null, true);
     }
 
     /**
@@ -334,27 +317,24 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findOneBy')
-            ->withAnyParameters()
+            ->with([], [])
             ->willReturn($entity);
 
         $this->resource->setRepository($repository);
 
         static::assertSame($entity, $this->resource->findOneBy([], null, true));
-
-        unset($repository, $entity);
     }
 
     /**
      * @dataProvider dataProviderTestThatCountCallsExpectedRepositoryMethodWithCorrectParameters
      *
-     * @param array $expectedArguments
-     * @param array $arguments
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `countAdvanced` method is called with `$expectedArguments` when using `$arguments` arguments.
      */
     public function testThatCountCallsExpectedRepositoryMethodWithCorrectParameters(
-        array $expectedArguments,
-        array $arguments
+        StringableArrayObject $expectedArguments,
+        StringableArrayObject $arguments
     ): void {
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
@@ -362,12 +342,11 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('countAdvanced')
-            ->with(...$expectedArguments);
+            ->with(...$expectedArguments->getArrayCopy());
 
-        $this->resource->setRepository($repository);
-        $this->resource->count(...$arguments);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->count(...$arguments->getArrayCopy());
     }
 
     /**
@@ -375,7 +354,7 @@ class GenericResourceTest extends KernelTestCase
      */
     public function testThatSaveMethodCallsExpectedRepositoryMethod(): void
     {
-        $entity = $this->getEntityInterfaceMock();
+        $entity = new ApiKeyEntity();
 
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
@@ -388,8 +367,6 @@ class GenericResourceTest extends KernelTestCase
         $this->resource->setRepository($repository);
 
         static::assertSame($entity, $this->resource->save($entity));
-
-        unset($repository, $entity);
     }
 
     /**
@@ -402,12 +379,16 @@ class GenericResourceTest extends KernelTestCase
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
 
+        $repository
+            ->expects(static::once())
+            ->method('getEntityName')
+            ->willReturn(UserEntity::class);
+
         $dto = new $this->dtoClass();
 
-        $this->resource->setRepository($repository);
-        $this->resource->create($dto);
-
-        unset($dto, $repository);
+        $this->resource
+            ->setRepository($repository)
+            ->create($dto);
     }
 
     /**
@@ -415,7 +396,7 @@ class GenericResourceTest extends KernelTestCase
      */
     public function testThatCreateMethodCallsExpectedMethods(): void
     {
-        /** @var MockObject|UserRepository|RepositoryInterface $repository */
+        /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
 
         $repository
@@ -450,11 +431,10 @@ class GenericResourceTest extends KernelTestCase
             ->expects(static::once())
             ->method('update');
 
-        $this->resource->setRepository($repository);
-        $this->resource->setValidator($validator);
-        $this->resource->create($dto);
-
-        unset($dto, $validator, $repository);
+        $this->resource
+            ->setRepository($repository)
+            ->setValidator($validator)
+            ->create($dto);
     }
 
     /**
@@ -476,10 +456,9 @@ class GenericResourceTest extends KernelTestCase
 
         $dto = new $this->dtoClass();
 
-        $this->resource->setRepository($repository);
-        $this->resource->update('some id', $dto);
-
-        unset($dto, $repository);
+        $this->resource
+            ->setRepository($repository)
+            ->update('some id', $dto);
     }
 
     /**
@@ -491,18 +470,18 @@ class GenericResourceTest extends KernelTestCase
         $entity = new $this->entityClass();
 
         $methods = [
-            'setUsername'   => 'username',
-            'setFirstName'  => 'first name',
-            'setLastName'   => 'last name',
-            'setEmail'      => 'test@test.com',
+            'setUsername' => 'username',
+            'setFirstName' => 'first name',
+            'setLastName' => 'last name',
+            'setEmail' => 'test@test.com',
         ];
 
         foreach ($methods as $method => $value) {
-            $dto->$method($value);
-            $entity->$method($value);
+            $dto->{$method}($value);
+            $entity->{$method}($value);
         }
 
-        /** @var MockObject|UserRepository|RepositoryInterface $repository */
+        /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
 
         $repository
@@ -516,10 +495,9 @@ class GenericResourceTest extends KernelTestCase
             ->method('save')
             ->with($entity);
 
-        $this->resource->setRepository($repository);
-        $this->resource->update('some id', $dto);
-
-        unset($repository, $entity, $dto);
+        $this->resource
+            ->setRepository($repository)
+            ->update('some id', $dto);
     }
 
     /**
@@ -546,21 +524,18 @@ class GenericResourceTest extends KernelTestCase
         $this->resource->setRepository($repository);
 
         static::assertSame($entity, $this->resource->delete('some id'));
-
-        unset($repository, $entity);
     }
 
     /**
      * @dataProvider dataProviderTestThatGetIdsCallsExpectedRepositoryMethodWithCorrectParameters
      *
-     * @param array $expectedArguments
-     * @param array $arguments
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `findIds` method is called with `$expectedArguments` when using `$arguments` arguments.
      */
     public function testThatGetIdsCallsExpectedRepositoryMethodWithCorrectParameters(
-        array $expectedArguments,
-        array $arguments
+        StringableArrayObject $expectedArguments,
+        StringableArrayObject $arguments
     ): void {
         /** @var MockObject|UserRepository $repository */
         $repository = $this->getRepositoryMockBuilder()->disableOriginalConstructor()->getMock();
@@ -568,12 +543,11 @@ class GenericResourceTest extends KernelTestCase
         $repository
             ->expects(static::once())
             ->method('findIds')
-            ->with(...$expectedArguments);
+            ->with(...$expectedArguments->getArrayCopy());
 
-        $this->resource->setRepository($repository);
-        $this->resource->getIds(...$arguments);
-
-        unset($repository);
+        $this->resource
+            ->setRepository($repository)
+            ->getIds(...$arguments->getArrayCopy());
     }
 
     /**
@@ -593,151 +567,111 @@ class GenericResourceTest extends KernelTestCase
             ->method('save')
             ->with($entity);
 
-        $this->resource->setRepository($repository);
-        $this->resource->save($entity);
-
-        unset($repository, $entity);
+        $this->resource
+            ->setRepository($repository)
+            ->save($entity);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatCountCallsExpectedRepositoryMethodWithCorrectParameters(): Generator
     {
         yield [
-            [[], []],
-            [null, null],
+            new StringableArrayObject([[], []]),
+            new StringableArrayObject([null, null]),
         ];
 
         yield [
-            [['foo'], []],
-            [['foo'], null],
+            new StringableArrayObject([['foo'], []]),
+            new StringableArrayObject([['foo'], null]),
         ];
 
         yield [
-            [['foo'], ['bar']],
-            [['foo'], ['bar']],
+            new StringableArrayObject([['foo'], ['bar']]),
+            new StringableArrayObject([['foo'], ['bar']]),
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatFindCallsExpectedRepositoryMethodWithCorrectParameters(): Generator
     {
         yield [
-            [[], [], 0, 0, []],
-            [null, null, null, null, null],
+            new StringableArrayObject([[], [], 0, 0, []]),
+            new StringableArrayObject([null, null, null, null, null]),
         ];
 
         yield [
-            [['foo'], [], 0, 0, []],
-            [['foo'], null, null, null, null],
+            new StringableArrayObject([['foo'], [], 0, 0, []]),
+            new StringableArrayObject([['foo'], null, null, null, null]),
         ];
 
         yield [
-            [['foo'], ['foo'], 0, 0, []],
-            [['foo'], ['foo'], null, null, null],
+            new StringableArrayObject([['foo'], ['foo'], 0, 0, []]),
+            new StringableArrayObject([['foo'], ['foo'], null, null, null]),
         ];
 
         yield [
-            [['foo'], ['foo'], 1, 0, []],
-            [['foo'], ['foo'], 1, null, null],
+            new StringableArrayObject([['foo'], ['foo'], 1, 0, []]),
+            new StringableArrayObject([['foo'], ['foo'], 1, null, null]),
         ];
 
         yield [
-            [['foo'], ['foo'], 1, 2, []],
-            [['foo'], ['foo'], 1, 2, null],
+            new StringableArrayObject([['foo'], ['foo'], 1, 2, []]),
+            new StringableArrayObject([['foo'], ['foo'], 1, 2, null]),
         ];
 
         yield [
-            [['foo'], ['foo'], 1, 2, ['foo']],
-            [['foo'], ['foo'], 1, 2, ['foo']],
+            new StringableArrayObject([['foo'], ['foo'], 1, 2, ['foo']]),
+            new StringableArrayObject([['foo'], ['foo'], 1, 2, ['foo']]),
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatFindOneByCallsExpectedRepositoryMethodWithCorrectParameters(): Generator
     {
         yield [
-            [[], []],
-            [[], null],
+            new StringableArrayObject([[], []]),
+            new StringableArrayObject([[], null]),
         ];
 
         yield [
-            [['foo'], []],
-            [['foo'], null],
+            new StringableArrayObject([['foo'], []]),
+            new StringableArrayObject([['foo'], null]),
         ];
 
         yield [
-            [['foo'], ['bar']],
-            [['foo'], ['bar']],
+            new StringableArrayObject([['foo'], ['bar']]),
+            new StringableArrayObject([['foo'], ['bar']]),
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetIdsCallsExpectedRepositoryMethodWithCorrectParameters(): Generator
     {
         yield [
-            [[], []],
-            [null, null],
+            new StringableArrayObject([[], []]),
+            new StringableArrayObject([null, null]),
         ];
 
         yield [
-            [['foo'], []],
-            [['foo'], null],
+            new StringableArrayObject([['foo'], []]),
+            new StringableArrayObject([['foo'], null]),
         ];
 
         yield [
-            [['foo'], ['bar']],
-            [['foo'], ['bar']],
+            new StringableArrayObject([['foo'], ['bar']]),
+            new StringableArrayObject([['foo'], ['bar']]),
         ];
-    }
-
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->resource = static::$container->get($this->resourceClass);
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->resource);
-
-        gc_collect_cycles();
     }
 
     /**
-     * @return MockBuilder
+     * @return EntityManagerInterface|object
      */
+    private static function getEntityManager(): EntityManagerInterface
+    {
+        return static::$container->get('doctrine')->getManager();
+    }
+
     private function getRepositoryMockBuilder(): MockBuilder
     {
         return $this
             ->getMockBuilder(UserRepository::class)
             ->setConstructorArgs([static::getEntityManager(), new ClassMetadata($this->entityClass)]);
-    }
-
-    /**
-     * @return MockObject|EntityInterface
-     *
-     * @throws Throwable
-     */
-    private function getEntityInterfaceMock(): MockObject
-    {
-        return $this
-            ->getMockBuilder(EntityInterface::class)
-            ->getMock();
     }
 
     /**
@@ -750,9 +684,6 @@ class GenericResourceTest extends KernelTestCase
         return $this->createMock($this->entityClass);
     }
 
-    /**
-     * @return MockBuilder
-     */
     private function getDtoMockBuilder(): MockBuilder
     {
         return $this->getMockBuilder($this->dtoClass);

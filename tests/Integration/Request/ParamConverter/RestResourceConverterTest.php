@@ -10,39 +10,51 @@ namespace App\Tests\Integration\Request\ParamConverter;
 
 use App\Entity\Role;
 use App\Request\ParamConverter\RestResourceConverter;
-use App\Resource\Collection;
+use App\Resource\ResourceCollection;
 use App\Resource\RoleResource;
 use App\Security\RolesService;
+use App\Utils\Tests\StringableArrayObject;
+use Generator;
 use Psr\Log\LoggerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 /**
  * Class RestResourceConverterTest
  *
  * @package App\Tests\Integration\Request\ParamConverter
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RestResourceConverterTest extends KernelTestCase
 {
-    /**
-     * @var RestResourceConverter
-     */
-    private $converter;
+    private RestResourceConverter $converter;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        /* @noinspection PhpParamsInspection */
+        $this->converter = new RestResourceConverter(static::$container->get(ResourceCollection::class));
+    }
 
     /**
      * @dataProvider dataProviderTestThatSupportMethodReturnsExpected
      *
-     * @param bool           $expected
-     * @param ParamConverter $configuration
+     * @testdox Test `supports` method returns `$expected` when using `$configuration` as ParamConverter input.
      */
-    public function testThatSupportMethodReturnsExpected(bool $expected, ParamConverter $configuration): void
+    public function testThatSupportMethodReturnsExpected(bool $expected, StringableArrayObject $configuration): void
     {
-        static::assertSame($expected, $this->converter->supports($configuration));
+        static::assertSame($expected, $this->converter->supports(new ParamConverter($configuration->getArrayCopy())));
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testThatApplyMethodThrowsAnException(): void
     {
         $this->expectException(NotFoundHttpException::class);
@@ -51,19 +63,19 @@ class RestResourceConverterTest extends KernelTestCase
         $request->attributes->set('foo', 'bar');
 
         $paramConverter = new ParamConverter([
-            'name'  => 'foo',
-            'class' => RoleResource::class
+            'name' => 'foo',
+            'class' => RoleResource::class,
         ]);
 
         $this->converter->apply($request, $paramConverter);
-
-        unset($paramConverter, $request);
     }
 
     /**
      * @dataProvider dataProviderTestThatApplyMethodReturnsExpected
      *
-     * @param string $role
+     * @throws Throwable
+     *
+     * @testdox Test that `apply` method works as expected when using `$role` as a request attribute.
      */
     public function testThatApplyMethodReturnsExpected(string $role): void
     {
@@ -71,73 +83,44 @@ class RestResourceConverterTest extends KernelTestCase
         $request->attributes->set('role', $role);
 
         $paramConverter = new ParamConverter([
-            'name'  => 'role',
-            'class' => RoleResource::class
+            'name' => 'role',
+            'class' => RoleResource::class,
         ]);
 
         static::assertTrue($this->converter->apply($request, $paramConverter));
         static::assertInstanceOf(Role::class, $request->attributes->get('role'));
         static::assertSame('Description - ' . $role, $request->attributes->get('role')->getDescription());
-
-        unset($paramConverter, $request);
     }
 
-    /**
-     * @return array
-     */
-    public function dataProviderTestThatSupportMethodReturnsExpected(): array
+    public function dataProviderTestThatSupportMethodReturnsExpected(): Generator
     {
-        return [
-            [
-                false,
-                new ParamConverter(['class' => 'FooBar']),
-            ],
-            [
-                false,
-                new ParamConverter(['class' => LoggerInterface::class]),
-            ],
-            [
-                false,
-                new ParamConverter(['class' => Role::class]),
-            ],
-            [
-                true,
-                new ParamConverter(['class' => RoleResource::class]),
-            ],
+        yield [
+            false,
+            new StringableArrayObject(['class' => 'FooBar']),
+        ];
+
+        yield [
+            false,
+            new StringableArrayObject(['class' => LoggerInterface::class]),
+        ];
+
+        yield [
+            false,
+            new StringableArrayObject(['class' => Role::class]),
+        ];
+
+        yield [
+            true,
+            new StringableArrayObject(['class' => RoleResource::class]),
         ];
     }
 
-    /**
-     * @return array
-     */
-    public function dataProviderTestThatApplyMethodReturnsExpected(): array
+    public function dataProviderTestThatApplyMethodReturnsExpected(): Generator
     {
-        return [
-            [RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_USER],
-            [RolesService::ROLE_ADMIN],
-            [RolesService::ROLE_ROOT],
-            [RolesService::ROLE_API],
-        ];
-    }
-
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->converter = new RestResourceConverter(static::$container->get(Collection::class));
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->converter);
-
-        gc_collect_cycles();
+        yield [RolesService::ROLE_LOGGED];
+        yield [RolesService::ROLE_USER];
+        yield [RolesService::ROLE_ADMIN];
+        yield [RolesService::ROLE_ROOT];
+        yield [RolesService::ROLE_API];
     }
 }

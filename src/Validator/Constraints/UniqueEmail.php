@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraint;
  * @Target({"CLASS"})
  *
  * @package App\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UniqueEmail extends Constraint
 {
@@ -34,7 +34,7 @@ class UniqueEmail extends Constraint
     /**
      * Error names configuration
      *
-     * @var mixed[]
+     * @var array<string, string>
      */
     protected static $errorNames = [
         self::IS_UNIQUE_EMAIL_ERROR => 'IS_UNIQUE_EMAIL_ERROR',

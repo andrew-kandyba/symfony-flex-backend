@@ -16,29 +16,14 @@ use App\Resource\ApiKeyResource;
  * Class ApiKeyRepositoryTest
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKeyRepositoryTest extends RepositoryTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = ApiKey::class;
-
-    /**
-     * @var string
-     */
-    protected $repositoryName = ApiKeyRepository::class;
-
-    /**
-     * @var string
-     */
-    protected $resourceName = ApiKeyResource::class;
-
-    /**
-     * @var array
-     */
-    protected $associations = [
+    protected string $entityName = ApiKey::class;
+    protected string $repositoryName = ApiKeyRepository::class;
+    protected string $resourceName = ApiKeyResource::class;
+    protected array $associations = [
         'userGroups',
         'logsRequest',
         'createdBy',

@@ -10,7 +10,7 @@ namespace App\DTO\UserGroup;
 
 use App\DTO\RestDto;
 use App\DTO\RestDtoInterface;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Role as RoleEntity;
 use App\Entity\UserGroup as Entity;
 use App\Validator\Constraints as AppAssert;
@@ -20,43 +20,35 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Class UserGroup
  *
  * @package App\DTO\UserGroup
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  *
- * @method self|RestDtoInterface  patch(RestDtoInterface $dto): RestDtoInterface
- * @method Entity|EntityInterface update(EntityInterface $entity): EntityInterface
+ * @method self|RestDtoInterface get(string $id)
+ * @method self|RestDtoInterface patch(RestDtoInterface $dto)
+ * @method Entity|EntityInterface update(EntityInterface $entity)
  */
 class UserGroup extends RestDto
 {
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 4, max = 255)
+     * @Assert\Length(
+     *      min = 4,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $name = '';
-
-    /** @noinspection PhpUnnecessaryFullyQualifiedNameInspection */
-    /**
-     * @var \App\Entity\Role
-     *
-     * @AppAssert\EntityReferenceExists()
-     */
-    protected $role;
+    protected string $name = '';
 
     /**
-     * @return string
+     * @AppAssert\EntityReferenceExists(entityClass=RoleEntity::class)
      */
+    protected ?RoleEntity $role = null;
+
     public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return UserGroup
-     */
     public function setName(string $name): self
     {
         $this->setVisited('name');
@@ -66,19 +58,11 @@ class UserGroup extends RestDto
         return $this;
     }
 
-    /**
-     * @return RoleEntity|string|null
-     */
-    public function getRole()
+    public function getRole(): ?RoleEntity
     {
         return $this->role;
     }
 
-    /**
-     * @param RoleEntity $role
-     *
-     * @return UserGroup
-     */
     public function setRole(RoleEntity $role): self
     {
         $this->setVisited('role');

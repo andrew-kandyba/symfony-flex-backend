@@ -13,38 +13,27 @@ use App\DTO\UserGroup\UserGroupPatch as UserGroupDto;
 use App\Entity\UserGroup as UserGroupEntity;
 use App\Form\Type\Console\UserGroupType;
 use App\Resource\UserGroupResource;
+use Matthias\SymfonyConsoleForm\Console\Helper\FormHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Class EditUserGroupCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EditUserGroupCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserGroupResource
-     */
-    private $userGroupResource;
-
-    /**
-     * @var UserHelper
-     */
-    private $userHelper;
+    private UserGroupResource $userGroupResource;
+    private UserHelper $userHelper;
 
     /**
      * EditUserGroupCommand constructor.
-     *
-     * @param UserGroupResource $userGroupResource
-     * @param UserHelper        $userHelper
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserGroupResource $userGroupResource, UserHelper $userHelper)
     {
@@ -58,48 +47,34 @@ class EditUserGroupCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         $userGroup = $this->userHelper->getUserGroup($io, 'Which user group you want to edit?');
+        $message = null;
 
         if ($userGroup instanceof UserGroupEntity) {
             $message = $this->updateUserGroup($input, $output, $userGroup);
         }
 
         if ($input->isInteractive()) {
-            $io->success($message ?? 'Nothing changed - have a nice day');
+            $message ??= 'Nothing changed - have a nice day';
+
+            $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 
     /**
      * Method to update specified user group entity via specified form.
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     * @param UserGroupEntity $userGroup
-     *
-     * @return string
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws Throwable
      */
     protected function updateUserGroup(
         InputInterface $input,
@@ -110,16 +85,14 @@ class EditUserGroupCommand extends Command
         $dtoLoaded = new UserGroupDto();
         $dtoLoaded->load($userGroup);
 
-        /** @var UserGroupDto $dtoLoaded */
-        $dtoEdit = $this->getHelper('form')->interactUsingForm(
-            UserGroupType::class,
-            $input,
-            $output,
-            ['data' => $dtoLoaded]
-        );
+        /** @var FormHelper $helper */
+        $helper = $this->getHelper('form');
 
-        // Update user group
-        $this->userGroupResource->update($userGroup->getId(), $dtoEdit);
+        /** @var UserGroupDto $dtoEdit */
+        $dtoEdit = $helper->interactUsingForm(UserGroupType::class, $input, $output, ['data' => $dtoLoaded]);
+
+        // Patch user group
+        $this->userGroupResource->patch($userGroup->getId(), $dtoEdit);
 
         return 'User group updated - have a nice day';
     }

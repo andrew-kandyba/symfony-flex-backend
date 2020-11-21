@@ -8,6 +8,7 @@ declare(strict_types = 1);
 
 namespace App\DTO\UserGroup;
 
+use App\Entity\Role;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -18,12 +19,9 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 class UserGroupCreate extends UserGroup
 {
-    /** @noinspection PhpFullyQualifiedNameUsageInspection */
     /**
-     * @var \App\Entity\Role
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
      */
-    protected $role;
+    protected ?Role $role = null;
 }

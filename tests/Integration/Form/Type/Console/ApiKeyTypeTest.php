@@ -17,21 +17,31 @@ use App\Resource\UserGroupResource;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
-use function array_keys;
 use Throwable;
+use function array_keys;
 
 /**
  * Class ApiKeyTypeTest
  *
  * @package App\Tests\Integration\Form\Type\Console
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKeyTypeTest extends TypeTestCase
 {
     /**
      * @var MockObject|UserGroupResource
      */
-    private $mockUserGroupResource;
+    private MockObject $mockUserGroupResource;
+
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        $this->mockUserGroupResource = $this->createMock(UserGroupResource::class);
+
+        parent::setUp();
+    }
 
     public function testSubmitValidData(): void
     {
@@ -39,8 +49,9 @@ class ApiKeyTypeTest extends TypeTestCase
         $roleEntity = new Role('ROLE_ADMIN');
 
         // Create new apiKey group entity
-        $userGroupEntity = new UserGroup();
-        $userGroupEntity->setRole($roleEntity);
+        $userGroupEntity = (new UserGroup())
+            ->setRole($roleEntity)
+            ->setName('Some name');
 
         $this->mockUserGroupResource
             ->expects(static::once())
@@ -57,14 +68,14 @@ class ApiKeyTypeTest extends TypeTestCase
         $form = $this->factory->create(ApiKeyType::class);
 
         // Create new DTO object
-        $dto = new ApiKeyDto();
-        $dto->setDescription('description');
-        $dto->setUserGroups([$userGroupEntity]);
+        $dto = (new ApiKeyDto())
+            ->setDescription('description')
+            ->setUserGroups([$userGroupEntity]);
 
         // Specify used form data
         $formData = [
-            'description'   => 'description',
-            'userGroups'    => [$userGroupEntity->getId()],
+            'description' => 'description',
+            'userGroups' => [$userGroupEntity->getId()],
         ];
 
         // submit the data to the form directly
@@ -74,7 +85,9 @@ class ApiKeyTypeTest extends TypeTestCase
         static::assertTrue($form->isSynchronized());
 
         // Test that form data matches with the DTO mapping
-        static::assertEquals($dto, $form->getData());
+        static::assertSame($dto->getId(), $form->getData()->getId());
+        static::assertSame($dto->getDescription(), $form->getData()->getDescription());
+        static::assertSame($dto->getUserGroups(), $form->getData()->getUserGroups());
 
         // Check that form renders correctly
         $view = $form->createView();
@@ -83,34 +96,8 @@ class ApiKeyTypeTest extends TypeTestCase
         foreach (array_keys($formData) as $key) {
             static::assertArrayHasKey($key, $children);
         }
-
-        unset($view, $dto, $form, $userGroupEntity, $roleEntity);
     }
 
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        $this->mockUserGroupResource = $this->createMock(UserGroupResource::class);
-
-        parent::setUp();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->mockUserGroupResource);
-
-        gc_collect_cycles();
-    }
-
-    /**
-     * @return array
-     */
     protected function getExtensions(): array
     {
         parent::getExtensions();

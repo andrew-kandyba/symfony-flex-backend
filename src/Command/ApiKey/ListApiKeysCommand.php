@@ -17,6 +17,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 use function array_map;
 use function implode;
 use function sprintf;
@@ -25,32 +26,15 @@ use function sprintf;
  * Class ListApiKeysCommand
  *
  * @package App\Command\ApiKey
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ListApiKeysCommand extends Command
 {
-    /**
-     * @var ApiKeyResource
-     */
-    private $apiKeyResource;
-
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
-
-    /**
-     * @var SymfonyStyle
-     */
-    private $io;
+    private ApiKeyResource $apiKeyResource;
+    private RolesService $rolesService;
 
     /**
      * ListUsersCommand constructor.
-     *
-     * @param ApiKeyResource $apiKeyResource
-     * @param RolesService   $rolesService
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(ApiKeyResource $apiKeyResource, RolesService $rolesService)
     {
@@ -64,19 +48,16 @@ class ListApiKeysCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->io = new SymfonyStyle($input, $output);
-        $this->io->write("\033\143");
+        $io = new SymfonyStyle($input, $output);
+        $io->write("\033\143");
 
-        static $headers = [
+        $headers = [
             'Id',
             'Token',
             'Description',
@@ -84,16 +65,18 @@ class ListApiKeysCommand extends Command
             'Roles (inherited)',
         ];
 
-        $this->io->title('Current API keys');
-        $this->io->table($headers, $this->getRows());
+        $io->title('Current API keys');
+        $io->table($headers, $this->getRows());
 
-        return null;
+        return 0;
     }
 
     /**
      * Getter method for formatted API key rows for console table.
      *
      * @return mixed[]
+     *
+     * @throws Throwable
      */
     private function getRows(): array
     {
@@ -103,36 +86,21 @@ class ListApiKeysCommand extends Command
     /**
      * Getter method for API key formatter closure. This closure will format single ApiKey entity for console
      * table.
-     *
-     * @return Closure
      */
     private function getFormatterApiKey(): Closure
     {
-        return function (ApiKey $apiToken): array {
-            return [
-                $apiToken->getId(),
-                $apiToken->getToken(),
-                $apiToken->getDescription(),
-                implode(",\n", $apiToken->getUserGroups()->map($this->getFormatterUserGroup())->toArray()),
-                implode(",\n", $this->rolesService->getInheritedRoles($apiToken->getRoles())),
-            ];
-        };
-    }
+        $userGroupFormatter = static fn (UserGroup $userGroup): string => sprintf(
+            '%s (%s)',
+            $userGroup->getName(),
+            $userGroup->getRole()->getId()
+        );
 
-    /**
-     * Getter method for user group formatter closure. This closure will format single UserGroup entity for console
-     * table.
-     *
-     * @return Closure
-     */
-    private function getFormatterUserGroup(): Closure
-    {
-        return static function (UserGroup $userGroup): string {
-            return sprintf(
-                '%s (%s)',
-                $userGroup->getName(),
-                $userGroup->getRole()->getId()
-            );
-        };
+        return fn (ApiKey $apiToken): array => [
+            $apiToken->getId(),
+            $apiToken->getToken(),
+            $apiToken->getDescription(),
+            implode(",\n", $apiToken->getUserGroups()->map($userGroupFormatter)->toArray()),
+            implode(",\n", $this->rolesService->getInheritedRoles($apiToken->getRoles())),
+        ];
     }
 }

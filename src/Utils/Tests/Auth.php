@@ -9,16 +9,20 @@ declare(strict_types = 1);
 namespace App\Utils\Tests;
 
 use App\Utils\JSON;
+use JsonException;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Throwable;
 use UnexpectedValueException;
 use function array_key_exists;
 use function array_merge;
 use function compact;
+use function file_get_contents;
+use function file_put_contents;
 use function getenv;
+use function property_exists;
 use function sha1;
+use function sprintf;
 use function str_pad;
 use function sys_get_temp_dir;
 
@@ -26,32 +30,24 @@ use function sys_get_temp_dir;
  * Class Auth
  *
  * @package App\Utils\Tests
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class Auth
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $testContainer;
+    private KernelInterface $kernel;
 
     /**
      * Auth constructor.
-     *
-     * @param ContainerInterface $container
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(KernelInterface $kernel)
     {
-        $this->testContainer = $container;
+        $this->kernel = $kernel;
     }
 
     /**
      * Method to get authorization headers for specified user.
      *
-     * @param string $username
-     * @param string $password
-     *
-     * @return mixed[]
+     * @return array<string, string>
      *
      * @throws Throwable
      */
@@ -64,9 +60,7 @@ class Auth
     /**
      * Method to get authorization headers for specified API Key role.
      *
-     * @param string $role
-     *
-     * @return mixed[]
+     * @return array<string, string>
      */
     public function getAuthorizationHeadersForApiKey(string $role): array
     {
@@ -81,9 +75,7 @@ class Auth
     /**
      * Method to get authorization headers for specified token.
      *
-     * @param string $token
-     *
-     * @return mixed[]
+     * @return array<string, string>
      */
     public function getAuthorizationHeaders(string $token): array
     {
@@ -96,7 +88,7 @@ class Auth
     }
 
     /**
-     * @return mixed[]
+     * @return array<string, string>
      */
     public function getJwtHeaders(): array
     {
@@ -111,12 +103,8 @@ class Auth
      *
      * @codeCoverageIgnore
      *
-     * @param string $username
-     * @param string $password
-     *
-     * @return string
-     *
      * @throws UnexpectedValueException
+     * @throws JsonException
      */
     private function getToken(string $username, string $password): string
     {
@@ -137,9 +125,8 @@ class Auth
         // User + password doesn't exists on cache - so we need to make real login
         if (!array_key_exists($hash, $cache)) {
             // Get client
-            /** @noinspection MissingService */
             /** @var KernelBrowser $client */
-            $client = $this->testContainer->get('test.client');
+            $client = $this->kernel->getContainer()->get('test.client');
 
             // Create request to make login using given credentials
             $client->request(
@@ -157,12 +144,7 @@ class Auth
                 JSON::encode(compact('username', 'password'))
             );
 
-            /** @var Response|null $response */
             $response = $client->getResponse();
-
-            if ($response === null) {
-                throw new UnexpectedValueException('Test client did not return response at all');
-            }
 
             if ($response->getStatusCode() !== 200) {
                 throw new UnexpectedValueException(
@@ -170,7 +152,10 @@ class Auth
                 );
             }
 
-            $cache[$hash] = JSON::decode($response->getContent())->token;
+            /** @var object $payload */
+            $payload = JSON::decode((string)$response->getContent());
+
+            $cache[$hash] = property_exists($payload, 'token') ? (string)$payload->token : '';
         }
 
         // And finally store cache for later usage
@@ -180,7 +165,7 @@ class Auth
     }
 
     /**
-     * @return mixed[]
+     * @return array<string, string>
      */
     private function getContentTypeHeader(): array
     {

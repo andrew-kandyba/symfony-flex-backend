@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\AutoMapper\User;
 
-use App\AutoMapper\RestRequestMapper;
 use App\AutoMapper\User\RequestMapper;
 use App\DTO\User as DTO;
 use App\Entity\UserGroup;
@@ -23,24 +22,13 @@ use Throwable;
  * Class RequestMapperTest
  *
  * @package App\Tests\Integration\AutoMapper\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RequestMapperTest extends RestRequestMapperTestCase
 {
-    /**
-     * @var string
-     */
-    protected $mapperClass = RequestMapper::class;
-
-    /**
-     * @var RestRequestMapper|RequestMapper
-     */
-    protected $mapperObject;
-
-    /**
-     * @var string[]
-     */
-    protected $restDtoClasses = [
+    protected RequestMapper $mapperObject;
+    protected string $mapperClass = RequestMapper::class;
+    protected array $restDtoClasses = [
         DTO\User::class,
         DTO\UserCreate::class,
         DTO\UserUpdate::class,
@@ -50,14 +38,25 @@ class RequestMapperTest extends RestRequestMapperTestCase
     /**
      * @var MockObject|UserGroupResource
      */
-    protected $mockUserGroupResource;
+    private MockObject $mockUserGroupResource;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->mockUserGroupResource = $this->getMockBuilder(UserGroupResource::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->mapperObject = new RequestMapper($this->mockUserGroupResource);
+    }
 
     /**
      * @dataProvider dataProviderTestThatTransformUserGroupsCallsExpectedResourceMethod
      *
-     * @param string $dtoClass
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `transformUserGroups` calls expected resource method when processing `$dtoClass`.
      */
     public function testThatTransformUserGroupsCallsExpectedResourceMethod(string $dtoClass): void
     {
@@ -79,24 +78,10 @@ class RequestMapperTest extends RestRequestMapperTestCase
         static::assertSame([$userGroup], $dto->getUserGroups());
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTransformUserGroupsCallsExpectedResourceMethod(): Generator
     {
         foreach ($this->restDtoClasses as $dtoClass) {
             yield [$dtoClass];
         }
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->mockUserGroupResource = $this->getMockBuilder(UserGroupResource::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->mapperObject = new RequestMapper($this->mockUserGroupResource);
     }
 }

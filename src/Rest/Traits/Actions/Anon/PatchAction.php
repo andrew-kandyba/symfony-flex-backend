@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Rest\Traits\Actions\Anon;
 
-use App\Annotation\RestApiDoc;
 use App\DTO\RestDtoInterface;
 use App\Rest\Traits\Methods\PatchMethod;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,29 +23,20 @@ use Throwable;
  * @see \App\Rest\Traits\Methods\PatchMethod for detailed documents.
  *
  * @package App\Rest\Traits\Actions\Root
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait PatchAction
 {
-    // Traits
     use PatchMethod;
 
     /**
      * @Route(
      *      "/{id}",
      *      requirements={
-     *          "id" = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+     *          "id" = "%app.uuid_v1_regex%",
      *      },
      *      methods={"PATCH"},
      *  )
-     *
-     * @RestApiDoc()
-     *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     * @param string           $id
-     *
-     * @return Response
      *
      * @throws Throwable
      */

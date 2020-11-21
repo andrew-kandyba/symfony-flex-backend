@@ -16,22 +16,11 @@ use App\Resource\HealthzResource;
  * Class HealthzRepositoryTest
  *
  * @package App\Tests\Integration\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class HealthzRepositoryTest extends RepositoryTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = Healthz::class;
-
-    /**
-     * @var string
-     */
-    protected $repositoryName = HealthzRepository::class;
-
-    /**
-     * @var string
-     */
-    protected $resourceName = HealthzResource::class;
+    protected string $entityName = Healthz::class;
+    protected string $repositoryName = HealthzRepository::class;
+    protected string $resourceName = HealthzResource::class;
 }

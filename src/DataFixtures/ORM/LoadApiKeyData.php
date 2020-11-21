@@ -10,12 +10,14 @@ namespace App\DataFixtures\ORM;
 
 use App\Entity\ApiKey;
 use App\Entity\UserGroup;
-use App\Security\RolesServiceInterface;
+use App\Rest\UuidHelper;
+use App\Security\Interfaces\RolesServiceInterface;
+use App\Utils\Tests\PhpUnitUtil;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
-use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Throwable;
 use function array_map;
 use function str_pad;
@@ -24,41 +26,31 @@ use function str_pad;
  * Class LoadApiKeyData
  *
  * @package App\DataFixtures\ORM
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ *
+ * @psalm-suppress MissingConstructor
  */
 final class LoadApiKeyData extends Fixture implements OrderedFixtureInterface, ContainerAwareInterface
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    use ContainerAwareTrait;
+
+    private ObjectManager $manager;
+    private RolesServiceInterface $roles;
 
     /**
-     * @var ObjectManager
+     * @var array<string, string>
      */
-    private $manager;
-
-    /**
-     * @var RolesServiceInterface
-     */
-    private $roles;
-
-    /**
-     * Setter for container.
-     *
-     * @param ContainerInterface|null $container
-     */
-    public function setContainer(?ContainerInterface $container = null): void
-    {
-        if ($container !== null) {
-            $this->container = $container;
-        }
-    }
+    private array $uuids = [
+        '' => 'daffdcdc-c79b-11ea-87d0-0242ac130003',
+        '-logged' => '066482a0-c79b-11ea-87d0-0242ac130003',
+        '-api' => '0cd106cc-c79b-11ea-87d0-0242ac130003',
+        '-user' => '1154e02e-c79b-11ea-87d0-0242ac130003',
+        '-admin' => '154ea868-c79b-11ea-87d0-0242ac130003',
+        '-root' => '187b35ba-c79b-11ea-87d0-0242ac130003',
+    ];
 
     /**
      * Load data fixtures with the passed EntityManager
-     *
-     * @param ObjectManager $manager
      *
      * @throws Throwable
      */
@@ -81,8 +73,6 @@ final class LoadApiKeyData extends Fixture implements OrderedFixtureInterface, C
 
     /**
      * Get the order of this fixture
-     *
-     * @return int
      */
     public function getOrder(): int
     {
@@ -92,8 +82,6 @@ final class LoadApiKeyData extends Fixture implements OrderedFixtureInterface, C
     /**
      * Helper method to create new ApiKey entity with specified role.
      *
-     * @param string|null $role
-     *
      * @throws Throwable
      */
     private function createApiKey(?string $role = null): void
@@ -102,7 +90,7 @@ final class LoadApiKeyData extends Fixture implements OrderedFixtureInterface, C
         $entity = new ApiKey();
         $entity->setDescription('ApiKey Description: ' . ($role === null ? '' : $this->roles->getShort($role)));
         $entity->setToken(
-            str_pad(($role === null ? '' : $this->roles->getShort($role)), 40, '_')
+            str_pad($role === null ? '' : $this->roles->getShort($role), 40, '_')
         );
 
         $suffix = '';
@@ -115,6 +103,12 @@ final class LoadApiKeyData extends Fixture implements OrderedFixtureInterface, C
 
             $suffix = '-' . $this->roles->getShort($role);
         }
+
+        PhpUnitUtil::setProperty(
+            'id',
+            UuidHelper::fromString($this->uuids[$suffix]),
+            $entity
+        );
 
         // Persist entity
         $this->manager->persist($entity);

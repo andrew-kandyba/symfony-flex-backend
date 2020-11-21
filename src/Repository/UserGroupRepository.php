@@ -14,30 +14,21 @@ use App\Entity\UserGroup as Entity;
  * Class UserGroupRepository
  *
  * @package App\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  *
  * @codingStandardsIgnoreStart
  *
- * @method Entity|null                           find(string $id, ?int $lockMode = null, ?int $lockVersion = null): ?Entity
- * @method array<array-key|Entity, mixed>|Entity findAdvanced(string $id, $hydrationMode = null)
- * @method Entity|null                           findOneBy(array $criteria, ?array $orderBy = null): ?Entity
- * @method Entity[]                              findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null): array
- * @method Entity[]                              findByAdvanced(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null, ?array $search = null): array
- * @method Entity[]                              findAll(): array
+ * @method Entity|null find(string $id, ?int $lockMode = null, ?int $lockVersion = null)
+ * @method array<int, Entity> findAdvanced(string $id, $hydrationMode = null)
+ * @method Entity|null findOneBy(array $criteria, ?array $orderBy = null)
+ * @method array<int, Entity> findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null)
+ * @method array<int, Entity> findByAdvanced(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null, ?array $search = null)
+ * @method array<int, Entity> findAll()
  *
  * @codingStandardsIgnoreEnd
  */
 class UserGroupRepository extends BaseRepository
 {
-    /**
-     * @var string
-     */
-    protected static $entityName = Entity::class;
-
-    /**
-     * Names of search columns.
-     *
-     * @var string[]
-     */
-    protected static $searchColumns = ['role', 'name'];
+    protected static string $entityName = Entity::class;
+    protected static array $searchColumns = ['role', 'name'];
 }

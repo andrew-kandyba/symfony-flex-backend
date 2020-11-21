@@ -4,31 +4,46 @@ services:
         build:
             context: .
             dockerfile: ./Dockerfile_dev
+            args:
+                HOST_UID: $HOST_UID
+                HOST_GID: $HOST_GID
         command: php-fpm
+        user: $HOST_UID:$HOST_GID
         depends_on:
             - mysql
         ports:
             - 9000:9000
         volumes:
             - ./:/app:cached
+            # Cannot use this because of the directory rights are forced for root user
+            #- /app/var/
         environment:
             PHP_IDE_CONFIG: "serverName=app.localhost"
+            # Eg. in GCP environment just set this environment variable
+            # to your k8s configuration.
+            #
+            # https://symfony.com/doc/current/deployment/proxies.html
+            TRUSTED_PROXIES: "127.0.0.1,REMOTE_ADDR"
 
     nginx:
         build:
             context: ./docker/nginx/
+            args:
+                HOST_UID: $HOST_UID
+                HOST_GID: $HOST_GID
         depends_on:
             - php
         ports:
             - 8000:80
         volumes:
             - ./:/app:cached
+            # Cannot use this because of the directory rights are forced for root user
+            #- /app/var/
 
     mysql:
         build:
             context: ./docker/mysql/
         command: --default-authentication-plugin=mysql_native_password
-        restart: always
         environment:
             MYSQL_ROOT_PASSWORD: password
         ports:

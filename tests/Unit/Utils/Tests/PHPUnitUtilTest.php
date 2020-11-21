@@ -10,7 +10,9 @@ namespace App\Tests\Unit\Utils\Tests;
 
 use App\Entity\User;
 use App\Utils\Tests\PhpUnitUtil;
+use App\Utils\Tests\StringableArrayObject;
 use DateTime;
+use DateTimeImmutable;
 use Generator;
 use LogicException;
 use stdClass;
@@ -21,7 +23,7 @@ use Throwable;
  * Class PHPUnitUtilTest
  *
  * @package App\Tests\Unit\Utils\Tests
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class PHPUnitUtilTest extends KernelTestCase
 {
@@ -36,8 +38,7 @@ class PHPUnitUtilTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetTypeReturnExpected
      *
-     * @param string $expected
-     * @param string $input
+     * @testdox Test that `getType` method returns `$expected` with `$input` input.
      */
     public function testThatGetTypeReturnExpected(string $expected, string $input): void
     {
@@ -58,15 +59,17 @@ class PHPUnitUtilTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetValidValueReturnsExpectedValue
      *
-     * @param mixed  $expected
-     * @param string $input
-     * @param bool   $strict
+     * @param mixed $expected
      *
      * @throws Throwable
+     *
+     * @testdox Test that `getValidValueForType` method returns `$expected` with `$input` and strict mode `$strict`.
      */
     public function testThatGetValidValueReturnsExpectedValue($expected, string $input, bool $strict): void
     {
         $value = PhpUnitUtil::getValidValueForType(PhpUnitUtil::getType($input));
+
+        $expected = $expected instanceof StringableArrayObject ? $expected->getArrayCopy() : $expected;
 
         $strict ? static::assertSame($expected, $value) : static::assertInstanceOf($expected, $value);
     }
@@ -94,21 +97,20 @@ class PHPUnitUtilTest extends KernelTestCase
      * @dataProvider dataProviderTestThatGetInvalidValueForTypeReturnsExpectedValue
      *
      * @param mixed $expected
-     * @param string $input
      *
      * @throws Throwable
+     *
+     * @testdox Test that `getInvalidValueForType` method returns `$expected` with `$input` input.
      */
     public function testThatGetInvalidValueForTypeReturnsExpectedValue($expected, string $input): void
     {
         static::assertInstanceOf($expected, PhpUnitUtil::getInvalidValueForType($input));
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetInvalidValueForTypeReturnsExpectedValue(): Generator
     {
         yield [DateTime::class, stdClass::class];
+        yield [DateTime::class, DateTimeImmutable::class];
         yield [stdClass::class, User::class];
         yield [stdClass::class, 'integer'];
         yield [stdClass::class, DateTime::class];
@@ -118,9 +120,6 @@ class PHPUnitUtilTest extends KernelTestCase
         yield [stdClass::class, 'bool'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetTypeReturnExpected(): Generator
     {
         yield ['int', 'integer'];
@@ -128,6 +127,9 @@ class PHPUnitUtilTest extends KernelTestCase
         yield [DateTime::class, 'time'];
         yield [DateTime::class, 'date'];
         yield [DateTime::class, 'datetime'];
+        yield [DateTimeImmutable::class, 'time_immutable'];
+        yield [DateTimeImmutable::class, 'date_immutable'];
+        yield [DateTimeImmutable::class, 'datetime_immutable'];
         yield ['string', 'string'];
         yield ['string', 'text'];
         yield ['array', 'array'];
@@ -135,9 +137,6 @@ class PHPUnitUtilTest extends KernelTestCase
         yield ['bool', 'bool'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetValidValueReturnsExpectedValue(): Generator
     {
         yield [666, 'int', true];
@@ -146,8 +145,11 @@ class PHPUnitUtilTest extends KernelTestCase
         yield [DateTime::class, 'time', false];
         yield [DateTime::class, 'date', false];
         yield [DateTime::class, 'datetime', false];
+        yield [DateTimeImmutable::class, 'time_immutable', false];
+        yield [DateTimeImmutable::class, 'date_immutable', false];
+        yield [DateTimeImmutable::class, 'datetime_immutable', false];
         yield ['Some text here', 'string', true];
-        yield [['some', 'array', 'here'], 'array', true];
+        yield [new StringableArrayObject(['some', 'array', 'here']), 'array', true];
         yield [true, 'boolean', true];
         yield [true, 'bool', true];
     }

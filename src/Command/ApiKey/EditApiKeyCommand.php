@@ -13,38 +13,27 @@ use App\DTO\ApiKey\ApiKey as ApiKeyDto;
 use App\Entity\ApiKey as ApiKeyEntity;
 use App\Form\Type\Console\ApiKeyType;
 use App\Resource\ApiKeyResource;
+use Matthias\SymfonyConsoleForm\Console\Helper\FormHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Class EditApiKeyCommand
  *
  * @package App\Command\ApiKey
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class EditApiKeyCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var ApiKeyResource
-     */
-    private $apiKeyResource;
-
-    /**
-     * @var ApiKeyHelper
-     */
-    private $apiKeyHelper;
+    private ApiKeyResource $apiKeyResource;
+    private ApiKeyHelper $apiKeyHelper;
 
     /**
      * EditUserCommand constructor.
-     *
-     * @param ApiKeyResource $apiKeyResource
-     * @param ApiKeyHelper   $apiKeyHelper
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(ApiKeyResource $apiKeyResource, ApiKeyHelper $apiKeyHelper)
     {
@@ -58,49 +47,37 @@ class EditApiKeyCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         // Get API key entity
         $apiKey = $this->apiKeyHelper->getApiKey($io, 'Which API key you want to edit?');
+        $message = null;
 
         if ($apiKey instanceof ApiKeyEntity) {
             $message = $this->updateApiKey($input, $output, $apiKey);
         }
 
         if ($input->isInteractive()) {
-            $io->success($message ?? 'Nothing changed - have a nice day');
+            $message ??= 'Nothing changed - have a nice day';
+
+            $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 
     /**
      * Method to update specified API key via specified form.
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     * @param ApiKeyEntity    $apiKey
-     *
      * @return mixed[]
      *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Symfony\Component\Console\Exception\LogicException
-     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws Throwable
      */
     private function updateApiKey(InputInterface $input, OutputInterface $output, ApiKeyEntity $apiKey): array
     {
@@ -108,16 +85,14 @@ class EditApiKeyCommand extends Command
         $dtoLoaded = new ApiKeyDto();
         $dtoLoaded->load($apiKey);
 
-        /** @var ApiKeyDto $dtoEdit */
-        $dtoEdit = $this->getHelper('form')->interactUsingForm(
-            ApiKeyType::class,
-            $input,
-            $output,
-            ['data' => $dtoLoaded]
-        );
+        /** @var FormHelper $helper */
+        $helper = $this->getHelper('form');
 
-        // Update API key
-        $this->apiKeyResource->update($apiKey->getId(), $dtoEdit);
+        /** @var ApiKeyDto $dtoEdit */
+        $dtoEdit = $helper->interactUsingForm(ApiKeyType::class, $input, $output, ['data' => $dtoLoaded]);
+
+        // Patch API key
+        $this->apiKeyResource->patch($apiKey->getId(), $dtoEdit);
 
         return $this->apiKeyHelper->getApiKeyMessage('API key updated - have a nice day', $apiKey);
     }

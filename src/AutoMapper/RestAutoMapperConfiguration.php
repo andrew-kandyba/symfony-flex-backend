@@ -16,26 +16,21 @@ use Symfony\Component\HttpFoundation\Request;
  * Class RestAutoMapperConfiguration
  *
  * @package App\AutoMapper
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class RestAutoMapperConfiguration implements AutoMapperConfiguratorInterface
 {
     /**
-     * @var RestRequestMapper
-     */
-    protected $requestMapper;
-
-    /**
      * Classes to use specified request mapper.
      *
-     * @var string[]
+     * @var array<int, string>
      */
-    protected static $requestMapperClasses = [];
+    protected static array $requestMapperClasses = [];
+
+    protected RestRequestMapper $requestMapper;
 
     /**
      * Use this method to register your mappings.
-     *
-     * @param AutoMapperConfigInterface $config
      */
     public function configure(AutoMapperConfigInterface $config): void
     {

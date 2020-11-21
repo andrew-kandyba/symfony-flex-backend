@@ -8,13 +8,17 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
+use App\Entity\Interfaces\UserGroupAwareInterface;
 use App\Entity\Traits\Blameable;
 use App\Entity\Traits\Timestampable;
+use App\Entity\Traits\Uuid;
 use App\Security\RolesService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints as AssertCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -22,6 +26,7 @@ use Throwable;
 use function array_map;
 use function array_merge;
 use function array_unique;
+use function array_values;
 use function mb_strlen;
 use function random_int;
 
@@ -33,40 +38,41 @@ use function random_int;
  * @ORM\Table(
  *      name="api_key",
  *      uniqueConstraints={
- *          @ORM\UniqueConstraint(name="uq_token", columns={"token"}),
+ * @ORM\UniqueConstraint(name="uq_token", columns={"token"}),
  *      },
  *  )
  * @ORM\Entity()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKey implements EntityInterface, UserGroupAwareInterface
 {
-    // Traits
     use Blameable;
     use Timestampable;
+    use Uuid;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "ApiKey",
      *      "ApiKey.id",
+     *
+     *      "LogRequest.apiKey"
      *  })
      *
      * @ORM\Column(
      *      name="id",
-     *      type="guid",
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
      *      nullable=false,
      *  )
      * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
      */
-    private $id;
+    private UuidInterface $id;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "ApiKey",
      *      "ApiKey.token",
@@ -74,7 +80,11 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 40, max = 40)
+     * @Assert\Length(
+     *      min = 40,
+     *      max = 40,
+     *      allowEmptyString="false",
+     *  )
      *
      * @ORM\Column(
      *      name="token",
@@ -83,11 +93,9 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *      nullable=false
      *  )
      */
-    private $token = '';
+    private string $token = '';
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "ApiKey",
      *      "ApiKey.description",
@@ -98,10 +106,10 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *      type="text",
      *  )
      */
-    private $description = '';
+    private string $description = '';
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * @var Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      *
      * @Groups({
      *      "ApiKey.userGroups",
@@ -115,10 +123,10 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *      name="api_key_has_user_group"
      *  )
      */
-    private $userGroups;
+    private Collection $userGroups;
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
+     * @var Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
      *
      * @Groups({
      *      "ApiKey.logsRequest",
@@ -129,43 +137,32 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *      mappedBy="apiKey",
      *  )
      */
-    private $logsRequest;
+    private Collection $logsRequest;
 
     /**
      * ApiKey constructor.
      *
-     * * @throws Throwable
+     * @throws Throwable
      */
     public function __construct()
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
         $this->userGroups = new ArrayCollection();
         $this->logsRequest = new ArrayCollection();
 
         $this->generateToken();
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return string
-     */
     public function getToken(): string
     {
         return $this->token;
     }
 
-    /**
-     * @param string $token
-     *
-     * @return ApiKey
-     */
     public function setToken(string $token): self
     {
         $this->token = $token;
@@ -174,8 +171,6 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
     }
 
     /**
-     * @return ApiKey
-     *
      * @throws Throwable
      */
     public function generateToken(): self
@@ -184,26 +179,18 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
         $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $max = mb_strlen($chars, '8bit') - 1;
 
-        for ($i = 0; $i < 40; ++$i) {
+        for ($i = 0; $i < 40; $i++) {
             $random .= $chars[random_int(0, $max)];
         }
 
         return $this->setToken($random);
     }
 
-    /**
-     * @return string
-     */
     public function getDescription(): string
     {
         return $this->description;
     }
 
-    /**
-     * @param string $description
-     *
-     * @return ApiKey
-     */
     public function setDescription(string $description): self
     {
         $this->description = $description;
@@ -212,7 +199,9 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
     }
 
     /**
-     * @return Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * Getter method for user groups collection.
+     *
+     * @return Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      */
     public function getUserGroups(): Collection
     {
@@ -220,9 +209,9 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
     }
 
     /**
-     * Getter for user request log collection.
+     * Getter method for user request log collection.
      *
-     * @return Collection|ArrayCollection|Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
+     * @return Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
      */
     public function getLogsRequest(): Collection
     {
@@ -236,40 +225,26 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
      *      "ApiKey.roles",
      *  })
      *
-     * @return string[]
+     * @return array<int, string>
      */
     public function getRoles(): array
     {
-        /**
-         * Lambda iterator to get user group role information.
-         *
-         * @param UserGroup $userGroup
-         *
-         * @return string
-         */
-        $iterator = static function (UserGroup $userGroup): string {
-            return $userGroup->getRole()->getId();
-        };
-
-        return array_map(
-            '\strval',
-            array_unique(
-                array_merge(
-                    [RolesService::ROLE_API],
-                    $this->userGroups->map($iterator)->toArray()
+        return array_values(
+            array_map(
+                '\strval',
+                array_unique(
+                    array_merge(
+                        [RolesService::ROLE_API],
+                        $this->userGroups
+                            ->map(static fn (UserGroup $userGroup): string => $userGroup->getRole()->getId())
+                            ->toArray()
+                    )
                 )
             )
         );
     }
 
-    /**
-     * Method to attach new userGroup to current api key.
-     *
-     * @param UserGroup $userGroup
-     *
-     * @return ApiKey|UserGroupAwareInterface
-     */
-    public function addUserGroup(UserGroup $userGroup): UserGroupAwareInterface
+    public function addUserGroup(UserGroup $userGroup): self
     {
         if (!$this->userGroups->contains($userGroup)) {
             $this->userGroups->add($userGroup);
@@ -279,14 +254,7 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * Method to remove specified userGroup from current api key.
-     *
-     * @param UserGroup $userGroup
-     *
-     * @return ApiKey|UserGroupAwareInterface
-     */
-    public function removeUserGroup(UserGroup $userGroup): UserGroupAwareInterface
+    public function removeUserGroup(UserGroup $userGroup): self
     {
         if ($this->userGroups->removeElement($userGroup)) {
             $userGroup->removeApiKey($this);
@@ -295,12 +263,7 @@ class ApiKey implements EntityInterface, UserGroupAwareInterface
         return $this;
     }
 
-    /**
-     * Method to remove all many-to-many userGroup relations from current api key.
-     *
-     * @return ApiKey|UserGroupAwareInterface
-     */
-    public function clearUserGroups(): UserGroupAwareInterface
+    public function clearUserGroups(): self
     {
         $this->userGroups->clear();
 

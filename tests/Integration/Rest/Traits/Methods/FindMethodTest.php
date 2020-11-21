@@ -8,8 +8,8 @@ declare(strict_types = 1);
 
 namespace App\Tests\Integration\Rest\Traits\Methods;
 
-use App\Rest\ResponseHandlerInterface;
-use App\Rest\RestResourceInterface;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use App\Tests\Integration\Rest\Traits\Methods\src\FindMethodInvalidTestClass;
 use App\Tests\Integration\Rest\Traits\Methods\src\FindMethodTestClass;
 use Exception;
@@ -28,19 +28,19 @@ use Throwable;
  * Class FindMethodTest
  *
  * @package App\Tests\Integration\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class FindMethodTest extends KernelTestCase
 {
     /**
      * @throws Throwable
      */
-    public function testThatTraitThrowsAnException():void
+    public function testThatTraitThrowsAnException(): void
     {
         $this->expectException(LogicException::class);
 
-        /** @codingStandardsIgnoreStart */
-        $this->expectExceptionMessageRegExp(
+        /* @codingStandardsIgnoreStart */
+        $this->expectExceptionMessageMatches(
             '/You cannot use (.*) controller class with REST traits if that does not implement (.*)ControllerInterface\'/'
         );
         /** @codingStandardsIgnoreEnd */
@@ -56,9 +56,9 @@ class FindMethodTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod
      *
-     * @param string $httpMethod
-     *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\FindMethod` throws an exception with `$httpMethod` HTTP method.
      */
     public function testThatTraitThrowsAnExceptionWithWrongHttpMethod(string $httpMethod): void
     {
@@ -113,11 +113,12 @@ class FindMethodTest extends KernelTestCase
      * @dataProvider dataProviderTestThatTraitHandlesException
      *
      * @param Exception $exception
-     * @param int       $expectedCode
      *
      * @throws Throwable
+     *
+     * @testdox Test that `App\Rest\Traits\Methods\FindMethod` uses `$expectedCode` code on HttpException.
      */
-    public function testThatTraitHandlesException(Exception $exception, int $expectedCode): void
+    public function testThatTraitHandlesException(\Throwable $exception, int $expectedCode): void
     {
         $resource = $this->createMock(RestResourceInterface::class);
         $responseHandler = $this->createMock(ResponseHandlerInterface::class);
@@ -157,7 +158,7 @@ class FindMethodTest extends KernelTestCase
 
         // Create request and response
         $request = Request::create('/');
-        $response = Response::create('[]');
+        $response = new Response('[]');
 
         $resource
             ->expects(static::once())
@@ -174,9 +175,6 @@ class FindMethodTest extends KernelTestCase
         $testClass->findMethod($request);
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitThrowsAnExceptionWithWrongHttpMethod(): Generator
     {
         yield ['HEAD'];
@@ -189,9 +187,6 @@ class FindMethodTest extends KernelTestCase
         yield ['foobar'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatTraitHandlesException(): Generator
     {
         yield [new HttpException(400), 0];

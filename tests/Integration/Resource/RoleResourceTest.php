@@ -16,11 +16,11 @@ use App\Resource\RoleResource;
  * Class RoleResourceTest
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RoleResourceTest extends ResourceTestCase
 {
-    protected $entityClass = Role::class;
-    protected $repositoryClass = RoleRepository::class;
-    protected $resourceClass = RoleResource::class;
+    protected string $entityClass = Role::class;
+    protected string $repositoryClass = RoleRepository::class;
+    protected string $resourceClass = RoleResource::class;
 }

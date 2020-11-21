@@ -8,12 +8,13 @@ declare(strict_types = 1);
 
 namespace App\Repository;
 
+use App\Entity\Interfaces\EntityInterface;
+use App\Repository\Interfaces\BaseRepositoryInterface;
 use App\Repository\Traits\RepositoryMethodsTrait;
 use App\Repository\Traits\RepositoryWrappersTrait;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\QueryBuilder;
-use InvalidArgumentException;
 use function array_merge;
 use function array_unshift;
 use function count;
@@ -27,11 +28,10 @@ use function spl_object_hash;
  * Class BaseRepository
  *
  * @package App\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class BaseRepository implements BaseRepositoryInterface
 {
-    // Traits
     use RepositoryMethodsTrait;
     use RepositoryWrappersTrait;
 
@@ -39,85 +39,86 @@ abstract class BaseRepository implements BaseRepositoryInterface
     private const LEFT_JOIN = 'leftJoin';
 
     /**
-     * Names of search columns.
-     *
-     * @var string[]
+     * @var array<int, string>
      */
-    protected static $searchColumns = [];
-
-    /**
-     * @var string
-     */
-    protected static $entityName;
-
-    /**
-     * @var EntityManager
-     */
-    protected static $entityManager;
+    protected static array $searchColumns = [];
+    protected static string $entityName;
+    protected static EntityManager $entityManager;
 
     /**
      * Joins that need to attach to queries, this is needed for to prevent duplicate joins on those.
      *
-     * @var mixed[]
+     * @var array<string, array<int, array<int, array<int, string>>>>
      */
-    private static $joins = [
+    private static array $joins = [
         self::INNER_JOIN => [],
         self::LEFT_JOIN => [],
     ];
 
     /**
-     * @var mixed[]
+     * @var array<string, array<int, string>>
      */
-    private static $processedJoins = [
+    private static array $processedJoins = [
         self::INNER_JOIN => [],
         self::LEFT_JOIN => [],
     ];
 
     /**
-     * @var mixed[]
+     * @var array<int, array<int, callable|mixed>>
      */
-    private static $callbacks = [];
+    private static array $callbacks = [];
 
     /**
-     * @var mixed[]
+     * @var array<int, string>
      */
-    private static $processedCallbacks = [];
+    private static array $processedCallbacks = [];
 
     /**
      * BaseRepository constructor.
-     *
-     * @param ManagerRegistry $managerRegistry
      */
     public function __construct(ManagerRegistry $managerRegistry)
     {
         $this->managerRegistry = $managerRegistry;
     }
 
-    /**
-     * Getter method for entity name.
-     *
-     * @return string
-     */
     public function getEntityName(): string
     {
         return static::$entityName;
     }
 
-    /**
-     * Getter method for search columns of current entity.
-     *
-     * @return string[]
-     */
     public function getSearchColumns(): array
     {
         return static::$searchColumns;
     }
 
-    /**
-     * With this method you can attach some custom functions for generic REST API find / count queries.
-     *
-     * @param QueryBuilder $queryBuilder
-     */
+    public function save(EntityInterface $entity, ?bool $flush = null): self
+    {
+        $flush ??= true;
+
+        // Persist on database
+        $this->getEntityManager()->persist($entity);
+
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+
+        return $this;
+    }
+
+    public function remove(EntityInterface $entity, ?bool $flush = null): self
+    {
+        $flush ??= true;
+
+        // Remove from database
+        $this->getEntityManager()->remove($entity);
+
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+
+        return $this;
+    }
+
     public function processQueryBuilder(QueryBuilder $queryBuilder): void
     {
         // Reset processed joins and callbacks
@@ -128,20 +129,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
         $this->processCallbacks($queryBuilder);
     }
 
-    /**
-     * Adds left join to current QueryBuilder query.
-     *
-     * @note Requires processJoins() to be run
-     *
-     * @see QueryBuilder::leftJoin() for parameters
-     *
-     * @param mixed[] $parameters
-     *
-     * @return BaseRepositoryInterface
-     *
-     * @throws InvalidArgumentException
-     */
-    public function addLeftJoin(array $parameters): BaseRepositoryInterface
+    public function addLeftJoin(array $parameters): self
     {
         if (count($parameters) > 1) {
             $this->addJoinToQuery(self::LEFT_JOIN, $parameters);
@@ -150,20 +138,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
         return $this;
     }
 
-    /**
-     * Adds inner join to current QueryBuilder query.
-     *
-     * @note Requires processJoins() to be run
-     *
-     * @see QueryBuilder::innerJoin() for parameters
-     *
-     * @param mixed[] $parameters
-     *
-     * @return BaseRepositoryInterface
-     *
-     * @throws InvalidArgumentException
-     */
-    public function addInnerJoin(array $parameters): BaseRepositoryInterface
+    public function addInnerJoin(array $parameters): self
     {
         if (count($parameters) > 0) {
             $this->addJoinToQuery(self::INNER_JOIN, $parameters);
@@ -172,27 +147,13 @@ abstract class BaseRepository implements BaseRepositoryInterface
         return $this;
     }
 
-    /**
-     * Method to add callback to current query builder instance which is calling 'processQueryBuilder' method. By
-     * default this method is called from following core methods:
-     *  - countAdvanced
-     *  - findByAdvanced
-     *  - findIds
-     *
-     * Note that every callback will get 'QueryBuilder' as in first parameter.
-     *
-     * @param callable     $callable
-     * @param mixed[]|null $args
-     *
-     * @return BaseRepositoryInterface
-     */
-    public function addCallback(callable $callable, ?array $args = null): BaseRepositoryInterface
+    public function addCallback(callable $callable, ?array $args = null): self
     {
-        $args = $args ?? [];
+        $args ??= [];
         $hash = sha1(serialize(array_merge([spl_object_hash((object)$callable)], $args)));
 
         if (!in_array($hash, self::$processedCallbacks, true)) {
-            self::$callbacks[$hash] = [$callable, $args];
+            self::$callbacks[] = [$callable, $args];
             self::$processedCallbacks[] = $hash;
         }
 
@@ -201,15 +162,9 @@ abstract class BaseRepository implements BaseRepositoryInterface
 
     /**
      * Process defined joins for current QueryBuilder instance.
-     *
-     * @param QueryBuilder $queryBuilder
      */
     protected function processJoins(QueryBuilder $queryBuilder): void
     {
-        /**
-         * @var string
-         * @var mixed[] $joins
-         */
         foreach (self::$joins as $joinType => $joins) {
             foreach ($joins as $joinParameters) {
                 $queryBuilder->{$joinType}(...$joinParameters);
@@ -222,14 +177,10 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * Process defined callbacks for current QueryBuilder instance.
      *
-     * @param QueryBuilder $queryBuilder
+     * @psalm-suppress PossiblyInvalidArgument
      */
     protected function processCallbacks(QueryBuilder $queryBuilder): void
     {
-        /**
-         * @var callable
-         * @var mixed[]  $args
-         */
         foreach (self::$callbacks as [$callback, $args]) {
             array_unshift($args, $queryBuilder);
 
@@ -240,26 +191,28 @@ abstract class BaseRepository implements BaseRepositoryInterface
     }
 
     /**
-     * Method to add defined join(s) to current QueryBuilder query. This will keep track of attached join(s) so any of
-     * those are not added multiple times to QueryBuilder.
+     * Method to add defined join(s) to current QueryBuilder query. This will
+     * keep track of attached join(s) so any of those are not added multiple
+     * times to QueryBuilder.
      *
-     * @note processJoins() method must be called for joins to actually be added to QueryBuilder. processQueryBuilder()
-     *       method calls this method automatically.
+     * @note processJoins() method must be called for joins to actually be
+     *       added to QueryBuilder. processQueryBuilder() method calls this
+     *       method automatically.
      *
      * @see QueryBuilder::leftJoin()
      * @see QueryBuilder::innerJoin()
      *
-     * @param string  $type       Join type; leftJoin, innerJoin or join
-     * @param mixed[] $parameters Query builder join parameters
+     * @param string $type Join type; leftJoin, innerJoin or join
+     * @param array<int, array<int, string>> $parameters Query builder join parameters
      */
     private function addJoinToQuery(string $type, array $parameters): void
     {
-        $comparision = implode('|', $parameters);
+        $comparison = implode('|', $parameters);
 
-        if (!in_array($comparision, self::$processedJoins[$type], true)) {
+        if (!in_array($comparison, self::$processedJoins[$type], true)) {
             self::$joins[$type][] = $parameters;
 
-            self::$processedJoins[$type][] = $comparision;
+            self::$processedJoins[$type][] = $comparison;
         }
     }
 }

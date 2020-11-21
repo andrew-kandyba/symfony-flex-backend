@@ -14,35 +14,23 @@ use App\Resource\UserResource;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Class RemoveUserCommand
  *
  * @package App\Command\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RemoveUserCommand extends Command
 {
-    // Traits
     use SymfonyStyleTrait;
 
-    /**
-     * @var UserResource
-     */
-    private $userResource;
-
-    /**
-     * @var UserHelper
-     */
-    private $userHelper;
+    private UserResource $userResource;
+    private UserHelper $userHelper;
 
     /**
      * RemoveUserCommand constructor.
-     *
-     * @param UserResource $userResource
-     * @param UserHelper   $userHelper
-     *
-     * @throws \Symfony\Component\Console\Exception\LogicException
      */
     public function __construct(UserResource $userResource, UserHelper $userHelper)
     {
@@ -56,22 +44,17 @@ class RemoveUserCommand extends Command
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * Executes the current command.
+     * {@inheritdoc}
      *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     *
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws Throwable
      */
-    protected function execute(InputInterface $input, OutputInterface $output): ?int
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = $this->getSymfonyStyle($input, $output);
 
         // Get user entity
         $user = $this->userHelper->getUser($io, 'Which user you want to remove?');
+        $message = null;
 
         if ($user instanceof User) {
             // Delete user
@@ -81,9 +64,11 @@ class RemoveUserCommand extends Command
         }
 
         if ($input->isInteractive()) {
-            $io->success($message ?? 'Nothing changed - have a nice day');
+            $message ??= 'Nothing changed - have a nice day';
+
+            $io->success($message);
         }
 
-        return null;
+        return 0;
     }
 }

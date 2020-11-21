@@ -10,24 +10,20 @@ namespace App\Utils;
 
 use App\Entity\Healthz;
 use App\Repository\HealthzRepository;
+use Throwable;
 
 /**
  * Class HealthzService
  *
  * @package App\Utils
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 final class HealthzService
 {
-    /**
-     * @var HealthzRepository
-     */
-    private $repository;
+    private HealthzRepository $repository;
 
     /**
      * HealthzService constructor.
-     *
-     * @param HealthzRepository $repository
      */
     public function __construct(HealthzRepository $repository)
     {
@@ -35,13 +31,16 @@ final class HealthzService
     }
 
     /**
-     * @return Healthz|null
+     * Method to check that "all" is ok within our application. This will try
+     * to do following:
+     *  1) Remove data from database
+     *  2) Create data to database
+     *  3) Read data from database
      *
-     * @throws \Doctrine\ORM\ORMInvalidArgumentException
-     * @throws \Doctrine\ORM\NonUniqueResultException
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     * @throws \Exception
+     * These steps should make sure that at least application database is
+     * working as expected.
+     *
+     * @throws Throwable
      */
     public function check(): ?Healthz
     {

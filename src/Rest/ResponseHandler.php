@@ -8,13 +8,15 @@ declare(strict_types = 1);
 
 namespace App\Rest;
 
-use Exception;
+use App\Rest\Interfaces\ResponseHandlerInterface;
+use App\Rest\Interfaces\RestResourceInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Serializer\SerializerInterface;
+use Throwable;
 use function array_key_exists;
 use function array_map;
 use function array_merge;
@@ -30,56 +32,45 @@ use function strncmp;
  * Class ResponseHandler
  *
  * @package App\Rest
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 final class ResponseHandler implements ResponseHandlerInterface
 {
     /**
      * Content types for supported response output formats.
      *
-     * @var mixed[]
+     * @var array<string, string>
      */
-    private $contentTypes = [
+    private array $contentTypes = [
         self::FORMAT_JSON => 'application/json',
         self::FORMAT_XML => 'application/xml',
     ];
 
-    /**
-     * @var SerializerInterface
-     */
-    private $serializer;
+    private SerializerInterface $serializer;
 
     /**
      * ResponseHandler constructor.
-     *
-     * @param SerializerInterface $serializer
      */
     public function __construct(SerializerInterface $serializer)
     {
         $this->serializer = $serializer;
     }
 
-    /**
-     * Getter for serializer
-     *
-     * @return SerializerInterface
-     */
     public function getSerializer(): SerializerInterface
     {
         return $this->serializer;
     }
 
     /**
-     * Helper method to get serialization context for request.
-     *
-     * @param Request                    $request
-     * @param RestResourceInterface|null $restResource
-     *
-     * @return mixed[]
+     * @return array<int|string, array<int, array<int, string>|string>|bool|string>
      */
     public function getSerializeContext(Request $request, ?RestResourceInterface $restResource = null): array
     {
-        // Specify used populate settings
+        /**
+         * Specify used populate settings
+         *
+         * @var array<int, string>
+         */
         $populate = (array)$request->get('populate', []);
 
         $groups = array_merge(['default', $populate]);
@@ -97,10 +88,7 @@ final class ResponseHandler implements ResponseHandlerInterface
             );
 
             $groups = array_merge([$entityName], $populate);
-
-            $filter = static function (string $groupName): bool {
-                return strncmp($groupName, 'Set.', 4) === 0;
-            };
+            $filter = static fn (string $groupName): bool => strncmp($groupName, 'Set.', 4) === 0;
 
             if (array_key_exists('populateOnly', $request->query->all())
                 || count(array_filter($groups, $filter)) > 0
@@ -109,24 +97,14 @@ final class ResponseHandler implements ResponseHandlerInterface
             }
         }
 
-        return [
-            'groups' => $groups,
-        ];
+        return array_merge(
+            ['groups' => $groups],
+            $restResource !== null ? $restResource->getSerializerContext() : [],
+        );
     }
 
     /**
-     * Helper method to create response for request.
-     *
-     * @param Request                    $request
-     * @param mixed                      $data
-     * @param RestResourceInterface|null $restResource
-     * @param int|null                   $httpStatus
-     * @param string|null                $format
-     * @param mixed[]|null               $context
-     *
-     * @return Response
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * {@inheritdoc}
      */
     public function createResponse(
         Request $request,
@@ -136,8 +114,8 @@ final class ResponseHandler implements ResponseHandlerInterface
         ?string $format = null,
         ?array $context = null
     ): Response {
-        $httpStatus = $httpStatus ?? 200;
-        $context = $context ?? $this->getSerializeContext($request, $restResource);
+        $httpStatus ??= 200;
+        $context ??= $this->getSerializeContext($request, $restResource);
         $format = $this->getFormat($request, $format);
 
         // Get response
@@ -149,25 +127,19 @@ final class ResponseHandler implements ResponseHandlerInterface
         return $response;
     }
 
-    /**
-     * Method to handle form errors.
-     *
-     * @param FormInterface $form
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     */
     public function handleFormError(FormInterface $form): void
     {
         $errors = [];
 
         /** @var FormError $error */
         foreach ($form->getErrors(true) as $error) {
-            $name = $error->getOrigin()->getName();
+            $origin = $error->getOrigin();
+            $name = $origin !== null ? $origin->getName() : '';
 
             $errors[] = sprintf(
                 'Field \'%s\': %s',
                 $name,
-                $error->/** @scrutinizer ignore-call */getMessage()
+                $error->getMessage()
             );
 
             if ($name === '') {
@@ -181,12 +153,9 @@ final class ResponseHandler implements ResponseHandlerInterface
     }
 
     /**
-     * @param bool                  $populateAll
-     * @param string[]              $populate
-     * @param string                $entityName
-     * @param RestResourceInterface $restResource
+     * @param array<int, string> $populate
      *
-     * @return string[]
+     * @return array<int, string>
      */
     private function checkPopulateAll(
         bool $populateAll,
@@ -197,22 +166,19 @@ final class ResponseHandler implements ResponseHandlerInterface
         // Set all associations to be populated
         if ($populateAll && count($populate) === 0) {
             $associations = $restResource->getAssociations();
-
-            $iterator = static function (string $assocName) use ($entityName): string {
-                return $entityName . '.' . $assocName;
-            };
-
-            $populate = array_map($iterator, $associations);
+            $populate = array_map(
+                static fn (string $assocName): string => $entityName . '.' . $assocName,
+                $associations
+            );
         }
 
         return $populate;
     }
 
     /**
-     * @param Request     $request
-     * @param string|null $format
-     *
-     * @return string
+     * Getter method response format with fallback to default formats;
+     *  - XML
+     *  - JSON
      */
     private function getFormat(Request $request, ?string $format = null): string
     {
@@ -220,14 +186,10 @@ final class ResponseHandler implements ResponseHandlerInterface
     }
 
     /**
-     * @param mixed   $data
-     * @param int     $httpStatus
-     * @param string  $format
-     * @param mixed[] $context
+     * @param mixed $data
+     * @param array<int|string, array<int, array<int, string>|string>|bool|string> $context
      *
-     * @return Response
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws HttpException
      */
     private function getResponse($data, int $httpStatus, string $format, array $context): Response
     {
@@ -236,7 +198,7 @@ final class ResponseHandler implements ResponseHandlerInterface
             $response = new Response();
             $response->setContent($this->serializer->serialize($data, $format, $context));
             $response->setStatusCode($httpStatus);
-        } catch (Exception $exception) {
+        } catch (Throwable $exception) {
             $status = Response::HTTP_BAD_REQUEST;
 
             throw new HttpException($status, $exception->getMessage(), $exception, [], $status);

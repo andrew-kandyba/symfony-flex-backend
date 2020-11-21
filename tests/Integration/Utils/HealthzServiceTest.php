@@ -18,7 +18,7 @@ use Throwable;
  * Class HealthzServiceTest
  *
  * @package App\Tests\Integration\Utils
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class HealthzServiceTest extends KernelTestCase
 {
@@ -44,9 +44,7 @@ class HealthzServiceTest extends KernelTestCase
             ->expects(static::once())
             ->method('read');
 
-        $healthzService = new HealthzService($mockRepository);
-        $healthzService->check();
-
-        unset($healthzService, $mockRepository);
+        (new HealthzService($mockRepository))
+            ->check();
     }
 }

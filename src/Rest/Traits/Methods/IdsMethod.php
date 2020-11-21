@@ -17,26 +17,20 @@ use Throwable;
  * Trait IdsMethod
  *
  * @package App\Rest\Traits\Methods
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait IdsMethod
 {
-    // Traits
-    use AbstractGenericMethods;
-
     /**
      * Generic 'idsMethod' method for REST resources.
      *
-     * @param Request       $request
-     * @param string[]|null $allowedHttpMethods
-     *
-     * @return Response
+     * @param array<int, string>|null $allowedHttpMethods
      *
      * @throws Throwable
      */
     public function idsMethod(Request $request, ?array $allowedHttpMethods = null): Response
     {
-        $resource = $this->validateRestMethodAndGetResource($request, $allowedHttpMethods ?? ['GET']);
+        $resource = $this->getResourceForMethod($request, $allowedHttpMethods ?? ['GET']);
 
         // Determine used parameters
         $search = RequestHandler::getSearchTerms($request);
@@ -44,7 +38,7 @@ trait IdsMethod
         try {
             $criteria = RequestHandler::getCriteria($request);
 
-            $this->processCriteria($criteria);
+            $this->processCriteria($criteria, $request, __METHOD__);
 
             return $this
                 ->getResponseHandler()

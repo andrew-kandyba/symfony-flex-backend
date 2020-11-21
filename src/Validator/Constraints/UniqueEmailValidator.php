@@ -8,7 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Validator\Constraints;
 
-use App\Entity\UserInterface;
+use App\Entity\Interfaces\UserInterface;
 use App\Repository\UserRepository;
 use Doctrine\ORM\NonUniqueResultException;
 use Symfony\Component\Validator\Constraint;
@@ -18,19 +18,14 @@ use Symfony\Component\Validator\ConstraintValidator;
  * Class UniqueEmailValidator
  *
  * @package App\Validator\Constraints
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UniqueEmailValidator extends ConstraintValidator
 {
-    /**
-     * @var UserRepository
-     */
-    private $repository;
+    private UserRepository $repository;
 
     /**
      * UniqueUsernameValidator constructor.
-     *
-     * @param UserRepository $repository
      */
     public function __construct(UserRepository $repository)
     {
@@ -38,16 +33,15 @@ class UniqueEmailValidator extends ConstraintValidator
     }
 
     /**
-     * Checks if the passed value is valid.
+     * {@inheritdoc}
      *
      * @throws NonUniqueResultException
-     *
-     * @param UserInterface|mixed       $value      The value that should be validated
-     * @param Constraint|UniqueEmail $constraint The constraint for the validation
      */
     public function validate($value, Constraint $constraint): void
     {
-        if (!$this->repository->isEmailAvailable($value->getEmail(), $value->getId())) {
+        if ($value instanceof UserInterface
+            && !$this->repository->isEmailAvailable($value->getEmail(), $value->getId())
+        ) {
             $this->context
                 ->buildViolation(UniqueEmail::MESSAGE)
                 ->setCode(UniqueEmail::IS_UNIQUE_EMAIL_ERROR)

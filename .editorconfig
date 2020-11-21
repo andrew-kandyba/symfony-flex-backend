@@ -10,8 +10,8 @@ indent_style = space
 indent_size = 4
 insert_final_newline = true
 
-[composer.json]
+[{composer.json,Makefile}]
 indent_style = tab
 
-[{.codeclimate.yml,.travis.yml}]
+[{.codeclimate.yml,main.yml,vulnerability-scan.yml,*.md}]
 indent_size = 2

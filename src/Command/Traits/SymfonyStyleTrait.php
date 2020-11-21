@@ -16,25 +16,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Trait SymfonyStyleTrait
  *
  * @package App\Command\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait SymfonyStyleTrait
 {
     /**
      * Method to get SymfonyStyle object for console commands.
-     *
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     * @param bool|null       $clearScreen
-     *
-     * @return SymfonyStyle
      */
     protected function getSymfonyStyle(
         InputInterface $input,
         OutputInterface $output,
         ?bool $clearScreen = null
     ): SymfonyStyle {
-        $clearScreen = $clearScreen ?? true;
+        $clearScreen ??= true;
 
         $io = new SymfonyStyle($input, $output);
 

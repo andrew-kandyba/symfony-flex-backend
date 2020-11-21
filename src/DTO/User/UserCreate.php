@@ -14,16 +14,18 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Class UserCreate
  *
  * @package App\DTO\User
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserCreate extends User
 {
     /**
-     * @var string
-     *
      * @Assert\NotBlank()
      * @Assert\NotNull()
-     * @Assert\Length(min = 8, max = 255)
+     * @Assert\Length(
+     *      min = 8,
+     *      max = 255,
+     *      allowEmptyString="false",
+     *  )
      */
-    protected $password = '';
+    protected string $password = '';
 }

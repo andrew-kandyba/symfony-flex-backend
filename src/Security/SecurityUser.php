@@ -9,53 +9,51 @@ declare(strict_types = 1);
 namespace App\Security;
 
 use App\Entity\User;
+use App\Security\Interfaces\SecurityUserInterface;
 
 /**
  * Class SecurityUser
  *
  * @package App\Security
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class SecurityUser implements SecurityUserInterface
 {
-    /**
-     * @var string
-     */
-    private $username;
+    private string $username;
+    private string $password;
+    private string $language;
+    private string $locale;
+    private string $timezone;
 
     /**
-     * @var string|null
+     * @var array<int, string>
      */
-    private $password;
-
-    /**
-     * @var string[]
-     */
-    private $roles = [];
+    private array $roles;
 
     /**
      * SecurityUser constructor.
      *
-     * @param User $user
+     * @param array<int, string> $roles
      */
-    public function __construct(User $user)
+    public function __construct(User $user, array $roles = [])
     {
         $this->username = $user->getId();
         $this->password = $user->getPassword();
+        $this->language = $user->getLanguage();
+        $this->locale = $user->getLocale();
+        $this->timezone = $user->getTimezone();
+        $this->roles = $roles;
     }
 
-    /**
-     * @return string
-     */
     public function getUuid(): string
     {
         return $this->getUsername();
     }
 
     /**
-     * @inheritDoc
+     * {@inheritdoc}
      *
-     * @return string[]
+     * @return array<int, string> The user roles
      */
     public function getRoles(): array
     {
@@ -63,35 +61,19 @@ class SecurityUser implements SecurityUserInterface
     }
 
     /**
-     * @param string[] $roles
+     * {@inheritdoc}
      *
-     * @return SecurityUser
-     */
-    public function setRoles(array $roles): self
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    /**
-     * Returns the password used to authenticate the user.
-     *
-     * This should be the encoded password. On authentication, a plain-text
-     * password will be salted, encoded, and then compared to this value.
-     *
-     * @return string
+     * @codeCoverageIgnore
      */
     public function getPassword(): string
     {
-        /** @noinspection UnnecessaryCastingInspection */
-        return (string)($this->password ?? '');
+        return $this->password;
     }
 
     /**
-     * Returns the salt that was originally used to encode the password.
+     * {@inheritdoc}
      *
-     * This can return null if the password was not encoded using a salt.
+     * @codeCoverageIgnore
      */
     public function getSalt(): ?string
     {
@@ -99,23 +81,31 @@ class SecurityUser implements SecurityUserInterface
     }
 
     /**
-     * Returns the username used to authenticate the user.
+     * {@inheritdoc}
      *
-     * @return string
+     * @codeCoverageIgnore
      */
     public function getUsername(): string
     {
         return $this->username;
     }
 
-    /**
-     * Removes sensitive data from the user.
-     *
-     * This is important if, at any given point, sensitive information like
-     * the plain-text password is stored on this object.
-     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+
+    public function getTimezone(): string
+    {
+        return $this->timezone;
+    }
+
     public function eraseCredentials(): void
     {
-        unset($this->password);
     }
 }

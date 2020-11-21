@@ -8,7 +8,7 @@ declare(strict_types = 1);
 
 namespace App\Utils\Tests;
 
-use App\Rest\ControllerInterface;
+use App\Rest\Controller;
 use ReflectionClass;
 use ReflectionException;
 use function gc_collect_cycles;
@@ -20,40 +20,30 @@ use function sprintf;
  * Class RestIntegrationControllerTestCase
  *
  * @package App\Utils\Tests
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 abstract class RestIntegrationControllerTestCase extends ContainerTestCase
 {
-    /**
-     * @var ControllerInterface|mixed
-     */
-    protected $controller;
+    protected Controller $controller;
+    protected string $controllerClass;
 
     /**
-     * @var string
+     * @psalm-var class-string
      */
-    protected $controllerClass;
+    protected string $resourceClass;
 
-    /**
-     * @var string
-     */
-    protected $resourceClass;
-
-    /**
-     * @inheritdoc
-     */
     protected function setUp(): void
     {
         gc_enable();
 
         parent::setUp();
 
-        $this->controller = $this->getContainer()->get($this->controllerClass);
+        /** @var Controller $controller */
+        $controller = $this->getContainer()->get($this->controllerClass);
+
+        $this->controller = $controller;
     }
 
-    /**
-     * @inheritdoc
-     */
     protected function tearDown(): void
     {
         parent::tearDown();
@@ -80,8 +70,9 @@ abstract class RestIntegrationControllerTestCase extends ContainerTestCase
     }
 
     /**
-     * This test is to make sure that controller has set the expected resource. There is multiple resources and each
-     * controller needs to use specified one.
+     * This test is to make sure that controller has set the expected resource.
+     * There is multiple resources and each controller needs to use specified
+     * one.
      */
     public function testThatGetResourceReturnsExpected(): void
     {

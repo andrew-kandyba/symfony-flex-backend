@@ -11,6 +11,7 @@ namespace App\Tests\Integration\Form\DataTransformer;
 use App\Entity\UserGroup;
 use App\Form\DataTransformer\UserGroupTransformer;
 use App\Resource\UserGroupResource;
+use App\Utils\Tests\StringableArrayObject;
 use Generator;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -21,28 +22,43 @@ use Throwable;
  * Class UserGroupTransformerTest
  *
  * @package App\Tests\Integration\Form\Console\DataTransformer
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserGroupTransformerTest extends KernelTestCase
 {
     /**
      * @var MockObject|UserGroupResource
      */
-    private $userGroupResource;
+    private MockObject $userGroupResource;
+
+    /**
+     * @throws Throwable
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->userGroupResource = $this
+            ->getMockBuilder(UserGroupResource::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+    }
 
     /**
      * @dataProvider dataProviderTestThatTransformReturnsExpected
      *
-     * @param mixed $expected
-     * @param mixed $input
+     * @testdox Test that `transform` method returns `$expected` when using `$input` input.
      */
-    public function testThatTransformReturnsExpected($expected, $input): void
-    {
+    public function testThatTransformReturnsExpected(
+        StringableArrayObject $expected,
+        ?StringableArrayObject $input
+    ): void {
         $transformer = new UserGroupTransformer($this->userGroupResource);
 
-        static::assertSame($expected, $transformer->transform($input));
-
-        unset($transformer);
+        static::assertSame(
+            $expected->getArrayCopy(),
+            $transformer->transform($input === null ? null : $input->getArrayCopy())
+        );
     }
 
     public function testThatReverseTransformCallsExpectedObjectManagerMethods(): void
@@ -56,10 +72,8 @@ class UserGroupTransformerTest extends KernelTestCase
             ->withConsecutive(['1'], ['2'])
             ->willReturnOnConsecutiveCalls($entity1, $entity2);
 
-        $transformer = new UserGroupTransformer($this->userGroupResource);
-        $transformer->reverseTransform(['1', '2']);
-
-        unset($transformer, $entity1, $entity2);
+        (new UserGroupTransformer($this->userGroupResource))
+            ->reverseTransform(['1', '2']);
     }
 
     public function testThatReverseTransformThrowsAnException(): void
@@ -75,10 +89,8 @@ class UserGroupTransformerTest extends KernelTestCase
             ->withConsecutive(['1'], ['2'])
             ->willReturnOnConsecutiveCalls($entity, null);
 
-        $transformer = new UserGroupTransformer($this->userGroupResource);
-        $transformer->reverseTransform(['1', '2']);
-
-        unset($transformer, $entity);
+        (new UserGroupTransformer($this->userGroupResource))
+            ->reverseTransform(['1', '2']);
     }
 
     public function testThatReverseTransformReturnsExpected(): void
@@ -95,45 +107,17 @@ class UserGroupTransformerTest extends KernelTestCase
         $transformer = new UserGroupTransformer($this->userGroupResource);
 
         static::assertSame([$entity1, $entity2], $transformer->reverseTransform(['1', '2']));
-
-        unset($transformer, $entity1, $entity2);
     }
 
     /**
-     * @return Generator
-     *
      * @throws Throwable
      */
     public function dataProviderTestThatTransformReturnsExpected(): Generator
     {
-        yield [[], null];
+        yield [new StringableArrayObject([]), null];
 
         $entity = new UserGroup();
 
-        yield [[$entity->getId()], [$entity]];
-    }
-
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        parent::setUp();
-
-        $this->userGroupResource = $this
-            ->getMockBuilder(UserGroupResource::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        unset($this->userGroupResource);
-
-        gc_collect_cycles();
+        yield [new StringableArrayObject([$entity->getId()]), new StringableArrayObject([$entity])];
     }
 }

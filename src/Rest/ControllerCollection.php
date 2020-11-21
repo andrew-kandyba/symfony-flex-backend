@@ -9,60 +9,47 @@ declare(strict_types = 1);
 namespace App\Rest;
 
 use App\Collection\CollectionTrait;
+use App\Rest\Interfaces\ControllerInterface;
 use Closure;
+use Countable;
 use InvalidArgumentException;
-use Traversable;
+use IteratorAggregate;
+use Psr\Log\LoggerInterface;
+use function sprintf;
 
 /**
  * Class ControllerCollection
  *
  * @package App\Rest
  * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
- *
- * @property Traversable|Traversable<ControllerInterface> $items
- *
- * @method ControllerInterface                          get(string $className)
- * @method Traversable<array-key, ControllerInterface>  getAll(): Traversable
  */
-class ControllerCollection
+class ControllerCollection implements Countable
 {
-    // Traits
     use CollectionTrait;
 
     /**
      * Collection constructor.
      *
-     * @param Traversable|Traversable<ControllerInterface> $controllers
+     * @param IteratorAggregate<int, ControllerInterface> $controllers
      */
-    public function __construct(Traversable $controllers)
+    public function __construct(IteratorAggregate $controllers, LoggerInterface $logger)
     {
         $this->items = $controllers;
+        $this->logger = $logger;
     }
 
-    /**
-     * @param string $className
-     *
-     * @throws InvalidArgumentException
-     */
     public function error(string $className): void
     {
         $message = sprintf(
-            'REST controller \'%s\' does not exists',
+            'REST controller \'%s\' does not exist',
             $className
         );
 
         throw new InvalidArgumentException($message);
     }
 
-    /**
-     * @param string|null $className
-     *
-     * @return Closure
-     */
-    public function filter(?string $className): Closure
+    public function filter(string $className): Closure
     {
-        return static function (ControllerInterface $restController) use ($className): bool {
-            return $className !== null && $restController instanceof $className;
-        };
+        return static fn (ControllerInterface $restController): bool => $restController instanceof $className;
     }
 }

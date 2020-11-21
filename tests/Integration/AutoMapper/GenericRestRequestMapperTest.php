@@ -24,14 +24,30 @@ use Throwable;
  * Class GenericRestRequestMapperTest
  *
  * @package App\Tests\Integration\AutoMapper
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class GenericRestRequestMapperTest extends KernelTestCase
 {
     /**
      * @throws Throwable
      */
-    public function testThatMapToObjectThrowsAnExceptionIfSourceIsNotRequest(): void
+    public function testThatMapToObjectThrowsAnExceptionIfSourceIsAnArray(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('RestRequestMapper expects that $source is Request object, "array" provided');
+
+        /**
+         * @var MockObject|RestRequestMapper $mockRestRequestMapper
+         */
+        $mockRestRequestMapper = $this->getMockForAbstractClass(RestRequestMapper::class, [], 'MockMapper');
+
+        $mockRestRequestMapper->mapToObject([], new stdClass());
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function testThatMapToObjectThrowsAnExceptionIfSourceIsNotRequestObject(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('RestRequestMapper expects that $source is Request object, "stdClass" provided');
@@ -74,7 +90,7 @@ class GenericRestRequestMapperTest extends KernelTestCase
 
         /**
          * @var MockObject|RestRequestMapper $mockRestRequestMapper
-         * @var MockObject|RestDtoInterface  $mockRestDtoInterface
+         * @var MockObject|RestDtoInterface $mockRestDtoInterface
          */
         $mockRestRequestMapper = $this->getMockForAbstractClass(RestRequestMapper::class, [], 'MockMapper');
         $mockRestDtoInterface = $this->getMockBuilder(RestDtoInterface::class)->getMock();

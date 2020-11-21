@@ -15,25 +15,20 @@ use Symfony\Component\Form\Exception\TransformationFailedException;
 use function array_map;
 use function array_values;
 use function is_array;
-use function is_string;
+use function sprintf;
 
 /**
  * Class UserGroupTransformer
  *
  * @package App\Form\Console\DataTransformer
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserGroupTransformer implements DataTransformerInterface
 {
-    /**
-     * @var UserGroupResource
-     */
-    private $resource;
+    private UserGroupResource $resource;
 
     /**
      * UserGroupTransformer constructor.
-     *
-     * @param UserGroupResource $resource
      */
     public function __construct(UserGroupResource $resource)
     {
@@ -43,24 +38,18 @@ class UserGroupTransformer implements DataTransformerInterface
     /**
      * Transforms an object (Role) to a string (Role id).
      *
-     * @param string[]|UserGroup[]|mixed|null $userGroups
+     * @param array<int, string|UserGroup>|mixed $userGroups
      *
-     * @return string[]
+     * @return array<int, string>
+     *
+     * @psalm-suppress MissingClosureParamType
      */
-    public function transform($userGroups): ?array
+    public function transform($userGroups): array
     {
         $output = [];
 
         if (is_array($userGroups)) {
-            $iterator =
-            /**
-             * @param string|UserGroup $userGroup
-             *
-             * @return string
-             */
-            static function ($userGroup): string {
-                return is_string($userGroup) ? $userGroup : $userGroup->getId();
-            };
+            $iterator = static fn ($group): string => $group instanceof UserGroup ? $group->getId() : (string)$group;
 
             $output = array_values(array_map('\strval', array_map($iterator, $userGroups)));
         }
@@ -71,11 +60,11 @@ class UserGroupTransformer implements DataTransformerInterface
     /**
      * Transforms a string (Role id) to an object (Role).
      *
-     * @param string[]|mixed $userGroups
+     * @param array<int, string>|mixed $userGroups
      *
-     * @return UserGroup[]|null
+     * @return array<int, UserGroup>|null
      *
-     * @throws TransformationFailedException if object (issue) is not found.
+     * @throws TransformationFailedException if object (issue) is not found
      */
     public function reverseTransform($userGroups): ?array
     {
@@ -87,7 +76,7 @@ class UserGroupTransformer implements DataTransformerInterface
                 $group = $this->resource->findOne($groupId);
 
                 if ($group === null) {
-                    throw new TransformationFailedException(\sprintf(
+                    throw new TransformationFailedException(sprintf(
                         'User group with id "%s" does not exist!',
                         $groupId
                     ));

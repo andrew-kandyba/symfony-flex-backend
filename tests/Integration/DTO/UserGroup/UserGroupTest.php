@@ -18,11 +18,11 @@ use PHPUnit\Framework\MockObject\MockObject;
  * Class UserGroupTest
  *
  * @package App\Tests\Integration\DTO
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class UserGroupTest extends DtoTestCase
 {
-    protected $dtoClass = UserGroup::class;
+    protected string $dtoClass = UserGroup::class;
 
     public function testThatLoadCallsExpectedEntityMethods(): void
     {
@@ -30,18 +30,16 @@ class UserGroupTest extends DtoTestCase
         $roleEntity = new RoleEntity('test role');
 
         // Create UserGroup entity
-        $userGroupEntity = new UserGroupEntity();
-        $userGroupEntity->setName('test user group');
-        $userGroupEntity->setRole($roleEntity);
+        $userGroupEntity = (new UserGroupEntity())
+            ->setName('test user group')
+            ->setRole($roleEntity);
 
         /** @var UserGroup $dto */
-        $dto = new $this->dtoClass();
-        $dto->load($userGroupEntity);
+        $dto = (new $this->dtoClass())
+            ->load($userGroupEntity);
 
         static::assertSame('test user group', $dto->getName());
         static::assertSame($roleEntity, $dto->getRole());
-
-        unset($dto, $userGroupEntity, $roleEntity);
     }
 
     public function testThatUpdateMethodCallsExpectedEntityMethods(): void
@@ -50,7 +48,6 @@ class UserGroupTest extends DtoTestCase
 
         /** @var MockObject|UserGroupEntity $userGroupEntity */
         $userGroupEntity = $this->getMockBuilder(UserGroupEntity::class)
-            ->setMethods(['getId', 'setName', 'setRole'])
             ->getMock();
 
         $userGroupEntity
@@ -65,12 +62,9 @@ class UserGroupTest extends DtoTestCase
             ->with($roleEntity)
             ->willReturn($userGroupEntity);
 
-        /** @var UserGroup $dto */
-        $dto = new $this->dtoClass();
-        $dto->setName('test name');
-        $dto->setRole($roleEntity);
-        $dto->update($userGroupEntity);
-
-        unset($dto, $userGroupEntity, $roleEntity);
+        (new $this->dtoClass())
+            ->setName('test name')
+            ->setRole($roleEntity)
+            ->update($userGroupEntity);
     }
 }

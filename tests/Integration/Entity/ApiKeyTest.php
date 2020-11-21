@@ -10,6 +10,7 @@ namespace App\Tests\Integration\Entity;
 
 use App\Entity\ApiKey;
 use App\Security\RolesService;
+use App\Utils\Tests\StringableArrayObject;
 use Generator;
 use function array_unique;
 use function strlen;
@@ -18,16 +19,13 @@ use function strlen;
  * Class ApiKeyTest
  *
  * @package App\Tests\Integration\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  *
  * @property ApiKey $entity
  */
 class ApiKeyTest extends EntityTestCase
 {
-    /**
-     * @var string
-     */
-    protected $entityName = ApiKey::class;
+    protected string $entityName = ApiKey::class;
 
     public function testThatTokenIsGenerated(): void
     {
@@ -36,30 +34,24 @@ class ApiKeyTest extends EntityTestCase
 
     public function testThatGetRolesContainsExpectedRole(): void
     {
-        static::assertContains(RolesService::ROLE_API, $this->entity->getRoles());
+        static::assertContainsEquals(RolesService::ROLE_API, $this->entity->getRoles());
     }
 
     /**
      * @dataProvider dataProviderTestThatApiKeyHasExpectedRoles
      *
-     * @param array $expectedRoles
-     * @param array $criteria
+     * @testdox Test that `ApiKey` has expected roles `$expectedRoles` with criteria `$criteria`.
      */
-    public function testThatApiKeyHasExpectedRoles(array $expectedRoles, array $criteria): void
-    {
-        $apiKey = $this->repository->findOneBy($criteria);
+    public function testThatApiKeyHasExpectedRoles(
+        StringableArrayObject $expectedRoles,
+        StringableArrayObject $criteria
+    ): void {
+        $apiKey = $this->repository->findOneBy($criteria->getArrayCopy());
 
         static::assertInstanceOf(ApiKey::class, $apiKey);
-
-        /** @noinspection NullPointerExceptionInspection */
-        static::assertSame($expectedRoles, $apiKey->getRoles());
-
-        unset($apiKey);
+        static::assertSame($expectedRoles->getArrayCopy(), $apiKey->getRoles());
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatApiKeyHasExpectedRoles(): Generator
     {
         static::bootKernel();
@@ -68,10 +60,10 @@ class ApiKeyTest extends EntityTestCase
 
         foreach ($rolesService->getRoles() as $role) {
             yield [
-                array_unique([RolesService::ROLE_API, $role]),
-                [
+                new StringableArrayObject(array_unique([RolesService::ROLE_API, $role])),
+                new StringableArrayObject([
                     'description' => 'ApiKey Description: ' . $rolesService->getShort($role),
-                ]
+                ]),
             ];
         }
     }

@@ -16,11 +16,11 @@ use App\Resource\LogLoginResource;
  * Class LogLoginResourceTest
  *
  * @package App\Tests\Integration\Resource
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogLoginResourceTest extends ResourceTestCase
 {
-    protected $entityClass = LogLogin::class;
-    protected $repositoryClass = LogLoginRepository::class;
-    protected $resourceClass = LogLoginResource::class;
+    protected string $entityClass = LogLogin::class;
+    protected string $repositoryClass = LogLoginRepository::class;
+    protected string $resourceClass = LogLoginResource::class;
 }

@@ -9,6 +9,7 @@ declare(strict_types = 1);
 namespace App\Tests\Unit\Security;
 
 use App\Security\RolesService;
+use App\Utils\Tests\StringableArrayObject;
 use Generator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -16,7 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * Class RolesServiceTest
  *
  * @package App\Tests\Unit\Security
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RolesServiceTest extends KernelTestCase
 {
@@ -24,6 +25,15 @@ class RolesServiceTest extends KernelTestCase
      * @var RolesService
      */
     private $service;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        $this->service = static::$container->get(RolesService::class);
+    }
 
     public function testThatGetHierarchyReturnsExpected(): void
     {
@@ -39,7 +49,7 @@ class RolesServiceTest extends KernelTestCase
             ],
             'ROLE_ROOT' => [
                 'ROLE_ADMIN',
-            ]
+            ],
         ];
 
         static::assertSame($expected, $this->service->getHierarchy(), 'Roles hierarchy is not expected.');
@@ -63,8 +73,7 @@ class RolesServiceTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetRoleLabelReturnsExpected
      *
-     * @param string $role
-     * @param string $expected
+     * @testdox Test that `getRoleLabel` method returns '$expected` with `$role`.
      */
     public function testThatGetRoleLabelReturnsExpected(string $role, string $expected): void
     {
@@ -74,8 +83,7 @@ class RolesServiceTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetShortReturnsExpected
      *
-     * @param string $input
-     * @param string $expected
+     * @testdox Test that `getShort` method returns '$expected` with `$input`.
      */
     public function testThatGetShortReturnsExpected(string $input, string $expected): void
     {
@@ -85,17 +93,19 @@ class RolesServiceTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetInheritedRolesReturnsExpected
      *
-     * @param array $expected
-     * @param array $roles
+     * @testdox Test that `getInheritedRoles` method returns `$expected` when using `$roles`.
      */
-    public function testThatGetInheritedRolesReturnsExpected(array $expected, array $roles): void
-    {
-        static::assertSame($expected, $this->service->getInheritedRoles($roles), 'Inherited roles was not expected');
+    public function testThatGetInheritedRolesReturnsExpected(
+        StringableArrayObject $expected,
+        StringableArrayObject $roles
+    ): void {
+        static::assertSame(
+            $expected->getArrayCopy(),
+            $this->service->getInheritedRoles($roles->getArrayCopy()),
+            'Inherited roles was not expected'
+        );
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetRoleLabelReturnsExpected(): Generator
     {
         yield [RolesService::ROLE_LOGGED, 'Logged in users'];
@@ -106,9 +116,6 @@ class RolesServiceTest extends KernelTestCase
         yield ['Not supported role', 'Unknown - Not supported role'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetShortReturnsExpected(): Generator
     {
         yield [RolesService::ROLE_LOGGED, 'logged'];
@@ -119,43 +126,36 @@ class RolesServiceTest extends KernelTestCase
         yield ['SOME_CUSTOM_ROLE', 'custom_role'];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetInheritedRolesReturnsExpected(): Generator
     {
         yield [
-            [RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_LOGGED],
+            new StringableArrayObject([RolesService::ROLE_LOGGED]),
+            new StringableArrayObject([RolesService::ROLE_LOGGED]),
         ];
 
         yield [
-            [RolesService::ROLE_USER, RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_USER],
+            new StringableArrayObject([RolesService::ROLE_USER, RolesService::ROLE_LOGGED]),
+            new StringableArrayObject([RolesService::ROLE_USER]),
         ];
 
         yield [
-            [RolesService::ROLE_API, RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_API],
+            new StringableArrayObject([RolesService::ROLE_API, RolesService::ROLE_LOGGED]),
+            new StringableArrayObject([RolesService::ROLE_API]),
         ];
 
         yield [
-            [RolesService::ROLE_ADMIN, RolesService::ROLE_USER, RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_ADMIN],
+            new StringableArrayObject([RolesService::ROLE_ADMIN, RolesService::ROLE_USER, RolesService::ROLE_LOGGED]),
+            new StringableArrayObject([RolesService::ROLE_ADMIN]),
         ];
 
         yield [
-            [RolesService::ROLE_ROOT, RolesService::ROLE_ADMIN, RolesService::ROLE_USER, RolesService::ROLE_LOGGED],
-            [RolesService::ROLE_ROOT],
+            new StringableArrayObject([
+                RolesService::ROLE_ROOT,
+                RolesService::ROLE_ADMIN,
+                RolesService::ROLE_USER,
+                RolesService::ROLE_LOGGED,
+            ]),
+            new StringableArrayObject([RolesService::ROLE_ROOT]),
         ];
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->service = static::$container->get(RolesService::class);
     }
 }

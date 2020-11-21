@@ -8,10 +8,13 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Traits\LogEntityTrait;
+use App\Entity\Traits\Uuid;
 use DeviceDetector\DeviceDetector;
 use Doctrine\ORM\Mapping as ORM;
-use Ramsey\Uuid\Uuid;
+use OpenApi\Annotations as OA;
+use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Throwable;
@@ -24,8 +27,8 @@ use function is_array;
  * @ORM\Table(
  *      name="log_login",
  *      indexes={
- *          @ORM\Index(name="user_id", columns={"user_id"}),
- *          @ORM\Index(name="date", columns={"date"}),
+ * @ORM\Index(name="user_id", columns={"user_id"}),
+ * @ORM\Index(name="date", columns={"date"}),
  *      }
  *  )
  * @ORM\Entity(
@@ -34,16 +37,32 @@ use function is_array;
  * @ORM\HasLifecycleCallbacks()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogLogin implements EntityInterface
 {
-    // Traits
     use LogEntityTrait;
+    use Uuid;
 
     /**
-     * @var User|null
+     * @Groups({
+     *      "LogLogin",
+     *      "LogLogin.id",
+     *  })
      *
+     * @ORM\Column(
+     *      name="id",
+     *      type="uuid_binary_ordered_time",
+     *      unique=true,
+     *      nullable=false,
+     *  )
+     * @ORM\Id()
+     *
+     * @OA\Property(type="string", format="uuid")
+     */
+    private UuidInterface $id;
+
+    /**
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.user",
@@ -54,7 +73,7 @@ class LogLogin implements EntityInterface
      *      inversedBy="logsLogin",
      *  )
      * @ORM\JoinColumns({
-     *      @ORM\JoinColumn(
+     * @ORM\JoinColumn(
      *          name="user_id",
      *          referencedColumnName="id",
      *          onDelete="SET NULL",
@@ -62,31 +81,12 @@ class LogLogin implements EntityInterface
      *      ),
      *  })
      */
-    protected $user;
+    private ?User $user;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "LogLogin",
-     *      "LogLogin.id",
-     *  })
-     *
-     * @ORM\Column(
-     *      name="id",
-     *      type="guid",
-     *      nullable=false,
-     *  )
-     * @ORM\Id()
-     */
-    private $id;
-
-    /**
-     * @var string
-     *
-     * @Groups({
-     *      "LogLogin",
-     *      "LogLogin.id",
+     *      "LogLogin.type",
      *  })
      *
      * @ORM\Column(
@@ -95,11 +95,9 @@ class LogLogin implements EntityInterface
      *      nullable=false,
      *  )
      */
-    private $type;
+    private string $type;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.clientType",
@@ -112,11 +110,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $clientType;
+    private ?string $clientType = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.clientName",
@@ -129,11 +125,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $clientName;
+    private ?string $clientName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.clientShortName",
@@ -146,11 +140,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $clientShortName;
+    private ?string $clientShortName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.clientVersion",
@@ -163,11 +155,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $clientVersion;
+    private ?string $clientVersion = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.clientEngine",
@@ -180,11 +170,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $clientEngine;
+    private ?string $clientEngine = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.osName",
@@ -197,11 +185,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $osName;
+    private ?string $osName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.osShortName",
@@ -214,11 +200,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $osShortName;
+    private ?string $osShortName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.osVersion",
@@ -231,11 +215,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $osVersion;
+    private ?string $osVersion = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.osPlatform",
@@ -248,11 +230,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $osPlatform;
+    private ?string $osPlatform = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.deviceName",
@@ -265,11 +245,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $deviceName;
+    private ?string $deviceName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.brandName",
@@ -282,11 +260,9 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $brandName;
+    private ?string $brandName = null;
 
     /**
-     * @var string|null
-     *
      * @Groups({
      *      "LogLogin",
      *      "LogLogin.model",
@@ -299,26 +275,18 @@ class LogLogin implements EntityInterface
      *      nullable=true,
      *  )
      */
-    private $model;
+    private ?string $model = null;
 
-    /**
-     * @var DeviceDetector
-     */
-    private $deviceDetector;
+    private DeviceDetector $deviceDetector;
 
     /**
      * LogLogin constructor.
-     *
-     * @param string         $type
-     * @param Request        $request
-     * @param DeviceDetector $deviceDetector
-     * @param User|null      $user
      *
      * @throws Throwable
      */
     public function __construct(string $type, Request $request, DeviceDetector $deviceDetector, ?User $user = null)
     {
-        $this->id = Uuid::uuid4()->toString();
+        $this->id = $this->createUuid();
 
         $this->type = $type;
         $this->deviceDetector = $deviceDetector;
@@ -329,113 +297,76 @@ class LogLogin implements EntityInterface
         $this->processClientData();
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
-        return $this->id;
+        return $this->id->toString();
     }
 
-    /**
-     * @return string
-     */
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
     public function getType(): string
     {
         return $this->type;
     }
 
-    /**
-     * @return string|null
-     */
     public function getClientType(): ?string
     {
         return $this->clientType;
     }
 
-    /**
-     * @return string|null
-     */
     public function getClientName(): ?string
     {
         return $this->clientName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getClientShortName(): ?string
     {
         return $this->clientShortName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getClientVersion(): ?string
     {
         return $this->clientVersion;
     }
 
-    /**
-     * @return string|null
-     */
     public function getClientEngine(): ?string
     {
         return $this->clientEngine;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOsName(): ?string
     {
         return $this->osName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOsShortName(): ?string
     {
         return $this->osShortName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOsVersion(): ?string
     {
         return $this->osVersion;
     }
 
-    /**
-     * @return string|null
-     */
     public function getOsPlatform(): ?string
     {
         return $this->osPlatform;
     }
 
-    /**
-     * @return string|null
-     */
     public function getDeviceName(): ?string
     {
         return $this->deviceName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getBrandName(): ?string
     {
         return $this->brandName;
     }
 
-    /**
-     * @return string|null
-     */
     public function getModel(): ?string
     {
         return $this->model;
@@ -457,16 +388,11 @@ class LogLogin implements EntityInterface
         $this->model = $this->deviceDetector->getModel();
     }
 
-    /**
-     * @param string $method
-     * @param string $attribute
-     *
-     * @return string
-     */
     private function getClientData(string $method, string $attribute): string
     {
+        /** @var string|array<int, string> $value */
         $value = $this->deviceDetector->{$method}($attribute);
 
-        return is_array($value) ? implode(', ', $value) : $value;
+        return is_array($value) ? implode(', ', $value) : (string)$value;
     }
 }

@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Tests\E2E\Rest\Traits\Actions\src;
 
-use App\Annotation\RestApiDoc;
 use App\DTO\User\UserCreate;
 use App\DTO\User\UserPatch;
 use App\DTO\User\UserUpdate;
@@ -25,11 +24,10 @@ use Symfony\Component\Routing\Annotation\Route;
  *  )
  *
  * @Security("is_granted('IS_AUTHENTICATED_FULLY')")
- *
- * @RestApiDoc(disabled=true)
+
  *
  * @package App\Tests\E2E\Rest\Traits\Actions\src
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class AdminActionsController extends Controller
 {
@@ -41,7 +39,7 @@ class AdminActionsController extends Controller
     use Actions\IdsAction;
     use Actions\UpdateAction;
 
-    protected static $dtoClasses = [
+    protected static array $dtoClasses = [
         Controller::METHOD_CREATE => UserCreate::class,
         Controller::METHOD_UPDATE => UserUpdate::class,
         Controller::METHOD_PATCH => UserPatch::class,

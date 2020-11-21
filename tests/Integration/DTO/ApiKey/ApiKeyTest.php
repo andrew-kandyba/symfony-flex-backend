@@ -10,7 +10,7 @@ namespace App\Tests\Integration\DTO\ApiKey;
 
 use App\DTO\ApiKey\ApiKey as ApiKeyDto;
 use App\Entity\ApiKey as ApiKeyEntity;
-use App\Entity\EntityInterface;
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Role as RoleEntity;
 use App\Entity\UserGroup as UserGroupEntity;
 use App\Tests\Integration\DTO\DtoTestCase;
@@ -22,11 +22,11 @@ use function count;
  * Class ApiKeyTest
  *
  * @package App\Tests\Integration\DTO
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class ApiKeyTest extends DtoTestCase
 {
-    protected $dtoClass = ApiKeyDto::class;
+    protected string $dtoClass = ApiKeyDto::class;
 
     public function testThatLoadMethodWorks(): void
     {
@@ -34,23 +34,21 @@ class ApiKeyTest extends DtoTestCase
         $roleEntity = new RoleEntity('test role');
 
         // Create UserGroup entity
-        $userGroupEntity = new UserGroupEntity();
-        $userGroupEntity->setName('test user group');
-        $userGroupEntity->setRole($roleEntity);
+        $userGroupEntity = (new UserGroupEntity())
+            ->setName('test user group')
+            ->setRole($roleEntity);
 
         // Create ApiKey entity
-        $apiKeyEntity = new ApiKeyEntity();
-        $apiKeyEntity->setDescription('Some description');
-        $apiKeyEntity->addUserGroup($userGroupEntity);
+        $apiKeyEntity = (new ApiKeyEntity())
+            ->setDescription('Some description')
+            ->addUserGroup($userGroupEntity);
 
         /** @var ApiKeyDto $dto */
-        $dto = new $this->dtoClass();
-        $dto->load($apiKeyEntity);
+        $dto = (new $this->dtoClass())
+            ->load($apiKeyEntity);
 
         static::assertSame('Some description', $dto->getDescription());
         static::assertSame([$userGroupEntity], $dto->getUserGroups());
-
-        unset($dto, $apiKeyEntity, $userGroupEntity, $roleEntity);
     }
 
     /**
@@ -65,7 +63,6 @@ class ApiKeyTest extends DtoTestCase
 
         /** @var MockObject|EntityInterface $entity */
         $entity = $this->getMockBuilder(ApiKeyEntity::class)
-            ->setMethods(['getId', 'setDescription', 'clearUserGroups', 'addUserGroup'])
             ->getMock();
 
         $entity
@@ -82,12 +79,9 @@ class ApiKeyTest extends DtoTestCase
             ->method('addUserGroup')
             ->willReturn($entity);
 
-        /** @var ApiKeyDto $dto */
-        $dto = new $this->dtoClass();
-        $dto->setDescription('some description');
-        $dto->setUserGroups($userGroups);
-        $dto->update($entity);
-
-        unset($dto, $entity, $userGroups);
+        (new $this->dtoClass())
+            ->setDescription('some description')
+            ->setUserGroups($userGroups)
+            ->update($entity);
     }
 }

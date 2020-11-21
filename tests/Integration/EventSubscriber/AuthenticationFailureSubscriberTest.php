@@ -24,7 +24,7 @@ use Throwable;
  * Class AuthenticationFailureSubscriberTest
  *
  * @package App\Tests\Integration\EventSubscriber
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class AuthenticationFailureSubscriberTest extends KernelTestCase
 {
@@ -33,8 +33,8 @@ class AuthenticationFailureSubscriberTest extends KernelTestCase
      */
     public function testThatOnAuthenticationFailureCallsExpectedServiceMethodsWhenUserPresent(): void
     {
-        $user = new User();
-        $user->setUsername('test-user');
+        $user = (new User())
+            ->setUsername('test-user');
 
         $token = new UsernamePasswordToken('test-user', 'password', 'providerKey');
 
@@ -46,7 +46,7 @@ class AuthenticationFailureSubscriberTest extends KernelTestCase
         $event = new AuthenticationFailureEvent($authenticationException, $response);
 
         /**
-         * @var MockObject|LoginLogger    $loginLogger
+         * @var MockObject|LoginLogger $loginLogger
          * @var MockObject|UserRepository $userRepository
          */
         $loginLogger = $this->getMockBuilder(LoginLogger::class)->disableOriginalConstructor()->getMock();
@@ -68,17 +68,12 @@ class AuthenticationFailureSubscriberTest extends KernelTestCase
             ->expects(static::once())
             ->method('process');
 
-        $subscriber = new AuthenticationFailureSubscriber($loginLogger, $userRepository);
-        $subscriber->onAuthenticationFailure($event);
-
-        unset($subscriber, $loginLogger, $userRepository, $event, $response, $authenticationException, $token, $user);
+        (new AuthenticationFailureSubscriber($loginLogger, $userRepository))
+            ->onAuthenticationFailure($event);
     }
 
     public function testThatOnAuthenticationFailureCallsExpectedServiceMethodsWhenUserNotPresent(): void
     {
-        $user = new User();
-        $user->setUsername('test-user');
-
         $token = new UsernamePasswordToken('test-user', 'password', 'providerKey');
 
         $authenticationException = new AuthenticationException();
@@ -89,7 +84,7 @@ class AuthenticationFailureSubscriberTest extends KernelTestCase
         $event = new AuthenticationFailureEvent($authenticationException, $response);
 
         /**
-         * @var MockObject|LoginLogger    $loginLogger
+         * @var MockObject|LoginLogger $loginLogger
          * @var MockObject|UserRepository $userRepository
          */
         $loginLogger = $this->getMockBuilder(LoginLogger::class)->disableOriginalConstructor()->getMock();
@@ -115,9 +110,8 @@ class AuthenticationFailureSubscriberTest extends KernelTestCase
 
         try {
             $subscriber->onAuthenticationFailure($event);
-        } /** @noinspection BadExceptionsProcessingInspection */ catch (Throwable $exception) {
+        } catch (Throwable $exception) {
+            (fn ($exception): bool => true)($exception);
         }
-
-        unset($subscriber, $loginLogger, $userRepository, $event, $response, $authenticationException, $token, $user);
     }
 }

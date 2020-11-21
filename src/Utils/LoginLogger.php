@@ -11,6 +11,7 @@ namespace App\Utils;
 use App\Entity\LogLogin;
 use App\Entity\User;
 use App\Resource\LogLoginResource;
+use App\Utils\Interfaces\LoginLoggerInterface;
 use BadMethodCallException;
 use DeviceDetector\DeviceDetector;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,64 +22,34 @@ use Throwable;
  * Class LoginLogger
  *
  * @package App\Utils
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LoginLogger implements LoginLoggerInterface
 {
-    /**
-     * @var LogLoginResource
-     */
-    private $logLoginResource;
-
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
-
-    /**
-     * @var User|null
-     */
-    private $user;
-
-    /**
-     * @var DeviceDetector
-     */
-    private $deviceDetector;
+    private LogLoginResource $logLoginResource;
+    private RequestStack $requestStack;
+    private ?User $user = null;
+    private DeviceDetector $deviceDetector;
 
     /**
      * LoginLogger constructor.
-     *
-     * @param LogLoginResource $logLoginFailureResource
-     * @param RequestStack     $requestStack
      */
-    public function __construct(LogLoginResource $logLoginFailureResource, RequestStack $requestStack)
+    public function __construct(LogLoginResource $logLoginResource, RequestStack $requestStack)
     {
         // Store used services
-        $this->logLoginResource = $logLoginFailureResource;
+        $this->logLoginResource = $logLoginResource;
         $this->requestStack = $requestStack;
+
+        $this->deviceDetector = new DeviceDetector();
     }
 
-    /**
-     * Setter for User object
-     *
-     * @param User|null $user
-     *
-     * @return LoginLoggerInterface
-     */
-    public function setUser(?User $user = null): LoginLoggerInterface
+    public function setUser(?User $user = null): self
     {
         $this->user = $user;
 
         return $this;
     }
 
-    /**
-     * Method to handle login event.
-     *
-     * @param string $type
-     *
-     * @throws Throwable
-     */
     public function process(string $type): void
     {
         // Get current request
@@ -88,12 +59,8 @@ class LoginLogger implements LoginLoggerInterface
             throw new BadMethodCallException('Could not get request from current request stack');
         }
 
-        // Specify user agent
-        /** @var string $agent */
-        $agent = $request->headers->get('User-Agent');
-
         // Parse user agent data with device detector
-        $this->deviceDetector = new DeviceDetector($agent);
+        $this->deviceDetector = new DeviceDetector((string)$request->headers->get('User-Agent', ''));
         $this->deviceDetector->parse();
 
         // Create entry
@@ -103,14 +70,10 @@ class LoginLogger implements LoginLoggerInterface
     /**
      * Method to create new login entry and store it to database.
      *
-     * @param string  $type
-     * @param Request $request
-     *
      * @throws Throwable
      */
     private function createEntry(string $type, Request $request): void
     {
-        /** @var LogLogin $entry */
         $entry = new LogLogin($type, $request, $this->deviceDetector, $this->user);
 
         // And store entry to database

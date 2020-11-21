@@ -19,20 +19,27 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * Class RepositoryHelperTest
  *
  * @package App\Tests\Integration\Rest
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class RepositoryHelperTest extends KernelTestCase
 {
-    /**
-     * @var UserRepository
-     */
-    protected $repository;
+    protected UserRepository $repository;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        static::bootKernel();
+
+        $this->repository = static::$container->get(UserResource::class)->getRepository();
+
+        RepositoryHelper::resetParameterCount();
+    }
 
     /**
      * @dataProvider dataProviderTestThatProcessCriteriaWorksAsExpected
      *
-     * @param string $expected
-     * @param array  $input
+     * @testdox Test that `processCriteria` method returns `$expected`.
      */
     public function testThatProcessCriteriaWorksAsExpected(string $expected, array $input): void
     {
@@ -51,7 +58,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         RepositoryHelper::processCriteria($qb, []);
 
-        $expected = /** @lang text */ 'SELECT entity FROM App\\Entity\\User entity';
+        $expected = 'SELECT entity FROM App\\Entity\\User entity';
         $message = 'processCriteria method changed DQL when it should not - weird';
 
         static::assertSame($expected, $qb->getDQL(), $message);
@@ -65,7 +72,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         $message = 'processSearchTerms did not return expected DQL.';
 
-        $expected = /** @lang text */ 'SELECT entity FROM App\\Entity\\User entity';
+        $expected = 'SELECT entity FROM App\\Entity\\User entity';
         $actual = $qb->getDQL();
 
         static::assertSame($expected, $actual, $message);
@@ -74,10 +81,9 @@ class RepositoryHelperTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatProcessSearchTermsWorksLikeExpected
      *
-     * @param string $expected
-     * @param array  $terms
+     * @testdox Test that `processSearchTerms` method returns `$expected`.
      */
-    public function testThatProcessSearchTermsWorksLikeExpectedWithSearchColumns(string $expected, array $terms):  void
+    public function testThatProcessSearchTermsWorksLikeExpectedWithSearchColumns(string $expected, array $terms): void
     {
         $qb = $this->repository->createQueryBuilder('entity');
 
@@ -91,8 +97,7 @@ class RepositoryHelperTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatProcessOrderByWorksLikeExpected
      *
-     * @param string $expected
-     * @param array  $input
+     * @testdox Test that `processOrderBy` method returns `$expected`.
      */
     public function testThatProcessOrderByWorksLikeExpected(string $expected, array $input): void
     {
@@ -120,9 +125,7 @@ class RepositoryHelperTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetExpressionCreatesExpectedDqlAndParametersWithSimpleCriteria
      *
-     * @param array  $criteria
-     * @param string $expectedDQL
-     * @param array  $expectedParameters
+     * @testdox Test that `getExpression` method returns `$expectedDQL` with simple criteria.
      */
     public function testThatGetExpressionCreatesExpectedDqlAndParametersWithSimpleCriteria(
         array $criteria,
@@ -146,9 +149,7 @@ class RepositoryHelperTest extends KernelTestCase
     /**
      * @dataProvider dataProviderTestThatGetExpressionCreatesExpectedDqlAndParametersWithComplexCriteria
      *
-     * @param array  $criteria
-     * @param string $expectedDQL
-     * @param array  $expectedParameters
+     * @testdox Test that `getExpression` method returns `$expectedDQL` with complex criteria.
      */
     public function testThatGetExpressionCreatesExpectedDqlAndParametersWithComplexCriteria(
         array $criteria,
@@ -169,25 +170,22 @@ class RepositoryHelperTest extends KernelTestCase
         }
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatProcessCriteriaWorksAsExpected(): Generator
     {
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.foo = ?1',
             ['foo' => 'bar'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE foo.bar = ?1',
             ['foo.bar' => 'foobar'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.foo = ?1 AND entity.bar = ?2',
             [
                 'foo' => 'bar',
@@ -196,7 +194,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE bar = ?1',
             [
                 'and' => [
@@ -206,7 +204,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE bar = ?1',
             [
                 'or' => [
@@ -216,7 +214,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE bar = ?1 AND foo = ?2',
             [
                 'and' => [
@@ -227,7 +225,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE bar = ?1 OR foo = ?2',
             [
                 'or' => [
@@ -238,14 +236,11 @@ class RepositoryHelperTest extends KernelTestCase
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatProcessSearchTermsWorksLikeExpected(): Generator
     {
         // @codingStandardsIgnoreStart
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.username LIKE ?1 AND entity.firstName LIKE ?2 AND entity.lastName LIKE ?3 AND entity.email LIKE ?4',
             [
                 'and' => ['foo'],
@@ -253,7 +248,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.username LIKE ?1 OR entity.firstName LIKE ?2 OR entity.lastName LIKE ?3 OR entity.email LIKE ?4',
             [
                 'or' => ['foo'],
@@ -261,7 +256,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.username LIKE ?1 AND entity.firstName LIKE ?2 AND entity.lastName LIKE ?3 AND entity.email LIKE ?4 AND entity.username LIKE ?5 AND entity.firstName LIKE ?6 AND entity.lastName LIKE ?7 AND entity.email LIKE ?8',
             [
                 'and' => ['foo', 'bar'],
@@ -269,7 +264,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE entity.username LIKE ?1 OR entity.firstName LIKE ?2 OR entity.lastName LIKE ?3 OR entity.email LIKE ?4 OR entity.username LIKE ?5 OR entity.firstName LIKE ?6 OR entity.lastName LIKE ?7 OR entity.email LIKE ?8',
             [
                 'or' => ['foo', 'bar'],
@@ -277,7 +272,7 @@ class RepositoryHelperTest extends KernelTestCase
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity WHERE (entity.username LIKE ?1 AND entity.firstName LIKE ?2 AND entity.lastName LIKE ?3 AND entity.email LIKE ?4) AND (entity.username LIKE ?5 OR entity.firstName LIKE ?6 OR entity.lastName LIKE ?7 OR entity.email LIKE ?8)',
             [
                 'and' => ['foo'],
@@ -287,43 +282,40 @@ class RepositoryHelperTest extends KernelTestCase
         // @codingStandardsIgnoreEnd
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatProcessOrderByWorksLikeExpected(): Generator
     {
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY entity.foo asc',
             ['foo' => 'asc'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY entity.foo DESC',
             ['foo' => 'DESC'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY entity.foo asc',
             ['entity.foo' => 'asc'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY .foo asdf',
             ['.foo' => 'asdf'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY foo.bar asc',
             ['foo.bar' => 'asc'],
         ];
 
         yield [
-            /** @lang text */
+            /* @lang text */
             'SELECT entity FROM App\Entity\User entity ORDER BY entity.foo asc, foo.bar desc',
             [
                 'foo' => 'asc',
@@ -332,14 +324,11 @@ class RepositoryHelperTest extends KernelTestCase
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetExpressionCreatesExpectedDqlAndParametersWithSimpleCriteria(): Generator
     {
         yield [
             ['u.id', 'eq', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id = ?1',
             [
                 [
@@ -351,7 +340,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'neq', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id <> ?1',
             [
                 [
@@ -363,7 +352,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'lt', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id < ?1',
             [
                 [
@@ -375,7 +364,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'lte', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id <= ?1',
             [
                 [
@@ -387,7 +376,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'gt', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id > ?1',
             [
                 [
@@ -399,7 +388,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'gte', 123],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id >= ?1',
             [
                 [
@@ -411,7 +400,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'in', [1, 2]],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id IN(1, 2)',
             [
                 [
@@ -423,7 +412,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'notIn', [1, 2]],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id NOT IN(1, 2)',
             [
                 [
@@ -439,21 +428,21 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'isNull', null],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id IS NULL',
             [],
         ];
 
         yield [
             ['u.id', 'isNotNull', null],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id IS NOT NULL',
             [],
         ];
 
         yield [
             ['u.id', 'like', 'abc'],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id LIKE ?1',
             [
                 [
@@ -465,7 +454,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'notLike', 'abc'],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id NOT LIKE ?1',
             [
                 [
@@ -477,7 +466,7 @@ class RepositoryHelperTest extends KernelTestCase
 
         yield [
             ['u.id', 'between', [1, 6]],
-            /** @lang text */
+            /* @lang text */
             'SELECT u FROM App\Entity\User u WHERE u.id BETWEEN ?1 AND ?2',
             [
                 [
@@ -492,9 +481,6 @@ class RepositoryHelperTest extends KernelTestCase
         ];
     }
 
-    /**
-     * @return Generator
-     */
     public function dataProviderTestThatGetExpressionCreatesExpectedDqlAndParametersWithComplexCriteria(): Generator
     {
         // @codingStandardsIgnoreStart
@@ -509,7 +495,7 @@ class RepositoryHelperTest extends KernelTestCase
                     ['u.lastName', 'neq', 'foo'],
                 ],
             ],
-            /** @lang text */
+            /* @lang text */
             <<<'DQL'
 SELECT u FROM App\Entity\User u WHERE (u.firstName = ?1 AND u.firstName <> ?2) AND (u.firstName = ?3 OR u.lastName <> ?4)
 DQL
@@ -545,9 +531,8 @@ DQL
                     ['u.field4', 'eq', 'four'],
                 ],
                 ['u.field5', 'neq', 5],
-
             ],
-            /** @lang text */
+            /* @lang text */
             <<<'DQL'
 SELECT u FROM App\Entity\User u WHERE (u.field1 LIKE ?1 OR u.field2 LIKE ?2) AND (u.field3 = ?3 AND u.field4 = ?4) AND u.field5 <> ?5
 DQL
@@ -576,16 +561,5 @@ DQL
             ],
         ];
         // @codingStandardsIgnoreEnd
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        static::bootKernel();
-
-        $this->repository = static::$container->get(UserResource::class)->getRepository();
-
-        RepositoryHelper::resetParameterCount();
     }
 }

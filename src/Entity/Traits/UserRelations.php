@@ -11,43 +11,41 @@ namespace App\Entity\Traits;
 use App\Entity\LogLogin;
 use App\Entity\LogLoginFailure;
 use App\Entity\LogRequest;
-use App\Entity\User;
 use App\Entity\UserGroup;
-use App\Entity\UserGroupAwareInterface;
-use App\Security\RolesService;
-use App\Security\RolesServiceInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
-use function array_unique;
 
 /**
  * Class UserRelations
  *
  * @package App\Entity\Traits
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait UserRelations
 {
     /**
-     * @var Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * @var Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      *
      * @Groups({
      *      "User.userGroups",
+     *
+     *      "set.UserProfile",
      *  })
      *
      * @ORM\ManyToMany(
-     *      targetEntity="UserGroup",
+     *      targetEntity="App\Entity\UserGroup",
      *      inversedBy="users",
      *  )
      * @ORM\JoinTable(
      *      name="user_has_user_group"
      *  )
      */
-    protected $userGroups;
+    protected Collection $userGroups;
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
+     * @var Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
      *
      * @Groups({
      *      "User.logsRequest",
@@ -58,10 +56,10 @@ trait UserRelations
      *      mappedBy="user",
      *  )
      */
-    protected $logsRequest;
+    protected Collection $logsRequest;
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, LogLogin>|ArrayCollection<int, LogLogin>
+     * @var Collection<int, LogLogin>|ArrayCollection<int, LogLogin>
      *
      * @Groups({
      *      "User.logsLogin",
@@ -72,10 +70,10 @@ trait UserRelations
      *      mappedBy="user",
      *  )
      */
-    protected $logsLogin;
+    protected Collection $logsLogin;
 
     /**
-     * @var Collection|ArrayCollection|Collection<int, LogLoginFailure>|ArrayCollection<int, LogLoginFailure>
+     * @var Collection<int, LogLoginFailure>|ArrayCollection<int, LogLoginFailure>
      *
      * @Groups({
      *      "User.logsLoginFailure",
@@ -86,63 +84,36 @@ trait UserRelations
      *      mappedBy="user",
      *  )
      */
-    protected $logsLoginFailure;
-
-    /**
-     * @var RolesServiceInterface
-     */
-    private $rolesService;
-
-    /**
-     * @param RolesServiceInterface $rolesService
-     *
-     * @return User
-     */
-    public function setRolesService(RolesServiceInterface $rolesService): User
-    {
-        $this->rolesService = $rolesService;
-
-        /** @noinspection PhpIncompatibleReturnTypeInspection */
-        return $this;
-    }
+    protected Collection $logsLoginFailure;
 
     /**
      * Getter for roles.
      *
+     * Note that this will only return _direct_ roles that user has and
+     * not the inherited ones!
+     *
+     * If you want to get user inherited roles you need to implement that
+     * logic by yourself OR use eg. `/user/{uuid}/roles` API endpoint.
+     *
      * @Groups({
      *      "User.roles",
+     *
+     *      "set.UserProfile",
      *  })
      *
      * @return string[]
      */
     public function getRoles(): array
     {
-        /**
-         * Lambda iterator to get user group role information.
-         *
-         * @param UserGroup $userGroup
-         *
-         * @return string
-         */
-        $iterator = static function (UserGroup $userGroup): string {
-            return $userGroup->getRole()->getId();
-        };
-
-        // Determine base roles
-        $output = $this->userGroups->map($iterator)->toArray();
-
-        // And if we have roles service present we can fetch all inherited roles
-        if ($this->rolesService instanceof RolesService) {
-            $output = $this->rolesService->getInheritedRoles($output);
-        }
-
-        return array_map('\strval', array_unique($output));
+        return $this->userGroups
+            ->map(static fn (UserGroup $userGroup): string => $userGroup->getRole()->getId())
+            ->toArray();
     }
 
     /**
      * Getter for user groups collection.
      *
-     * @return Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * @return Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      */
     public function getUserGroups(): Collection
     {
@@ -152,7 +123,7 @@ trait UserRelations
     /**
      * Getter for user request log collection.
      *
-     * @return Collection|ArrayCollection|mixed|Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
+     * @return Collection<int, LogRequest>|ArrayCollection<int, LogRequest>
      */
     public function getLogsRequest()
     {
@@ -162,7 +133,7 @@ trait UserRelations
     /**
      * Getter for user login log collection.
      *
-     * @return Collection|ArrayCollection|mixed|Collection<int, LogLogin>|ArrayCollection<int, LogLogin>
+     * @return Collection<int, LogLogin>|ArrayCollection<int, LogLogin>
      */
     public function getLogsLogin()
     {
@@ -172,7 +143,7 @@ trait UserRelations
     /**
      * Getter for user login failure log collection.
      *
-     * @return Collection|ArrayCollection|mixed|Collection<int, LogLoginFailure>|ArrayCollection<int, LogLoginFailure>
+     * @return Collection<int, LogLoginFailure>|ArrayCollection<int, LogLoginFailure>
      */
     public function getLogsLoginFailure()
     {
@@ -181,51 +152,40 @@ trait UserRelations
 
     /**
      * Method to attach new user group to user.
-     *
-     * @param UserGroup $userGroup
-     *
-     * @return User|UserGroupAwareInterface
      */
-    public function addUserGroup(UserGroup $userGroup): UserGroupAwareInterface
+    public function addUserGroup(UserGroup $userGroup): self
     {
         if (!$this->userGroups->contains($userGroup)) {
             $this->userGroups->add($userGroup);
-            /** @noinspection PhpParamsInspection */
+
+            /* @noinspection PhpParamsInspection */
             $userGroup->addUser($this);
         }
 
-        /** @noinspection PhpIncompatibleReturnTypeInspection */
         return $this;
     }
 
     /**
      * Method to remove specified user group from user.
-     *
-     * @param UserGroup $userGroup
-     *
-     * @return User|UserGroupAwareInterface
      */
-    public function removeUserGroup(UserGroup $userGroup): UserGroupAwareInterface
+    public function removeUserGroup(UserGroup $userGroup): self
     {
         if ($this->userGroups->removeElement($userGroup)) {
-            /** @noinspection PhpParamsInspection */
+            /* @noinspection PhpParamsInspection */
             $userGroup->removeUser($this);
         }
 
-        /** @noinspection PhpIncompatibleReturnTypeInspection */
         return $this;
     }
 
     /**
-     * Method to remove all many-to-many user group relations from current user.
-     *
-     * @return User|UserGroupAwareInterface
+     * Method to remove all many-to-many user group relations from current
+     * user.
      */
-    public function clearUserGroups(): UserGroupAwareInterface
+    public function clearUserGroups(): self
     {
         $this->userGroups->clear();
 
-        /** @noinspection PhpIncompatibleReturnTypeInspection */
         return $this;
     }
 }

@@ -13,7 +13,6 @@ use App\Entity\User;
 use App\Utils\Tests\PhpUnitUtil;
 use DeviceDetector\DeviceDetector;
 use Doctrine\Common\Collections\ArrayCollection;
-use Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use function array_key_exists;
@@ -24,25 +23,52 @@ use function ucfirst;
  * Class LogLoginTest
  *
  * @package App\Tests\Integration\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogLoginTest extends EntityTestCase
 {
+    protected string $entityName = LogLogin::class;
+
+    /** @noinspection PhpMissingParentCallCommonInspection */
     /**
-     * @var string
+     * @throws Throwable
      */
-    protected $entityName = LogLogin::class;
+    protected function setUp(): void
+    {
+        static::bootKernel();
+
+        // Store container and entity manager
+        $this->testContainer = static::$kernel->getContainer();
+
+        /* @noinspection MissingService */
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->entityManager = $this->testContainer->get('doctrine.orm.default_entity_manager');
+
+        $request = Request::create('');
+
+        // Parse user agent data with device detector
+        $deviceDetector = new DeviceDetector($request->headers->get('User-Agent'));
+        $deviceDetector->parse();
+
+        // Create new entity object
+        $this->entity = new $this->entityName('', $request, $deviceDetector, new User());
+
+        /* @noinspection PhpFieldAssignmentTypeMismatchInspection */
+        $this->repository = $this->entityManager->getRepository($this->entityName);
+    }
 
     /** @noinspection PhpMissingParentCallCommonInspection */
     /**
      * @param string $field
      * @param string $type
-     * @param array  $meta
+     * @param array $meta
+     *
+     * @testdox No setter for `$field` field in read only entity - so cannot test this.
      */
     public function testThatSetterOnlyAcceptSpecifiedType(
-        string $field = null,
-        string $type = null,
-        array $meta = null
+        ?string $field = null,
+        ?string $type = null,
+        ?array $meta = null
     ): void {
         static::markTestSkipped('There is not setter in read only entity...');
     }
@@ -51,12 +77,14 @@ class LogLoginTest extends EntityTestCase
     /**
      * @param string $field
      * @param string $type
-     * @param array  $meta
+     * @param array $meta
+     *
+     * @testdox No setter for `$field` field in read only entity - so cannot test this.
      */
     public function testThatSetterReturnsInstanceOfEntity(
-        string $field = null,
-        string $type = null,
-        array $meta = null
+        ?string $field = null,
+        ?string $type = null,
+        ?array $meta = null
     ): void {
         static::markTestSkipped('There is not setter in read only entity...');
     }
@@ -65,11 +93,9 @@ class LogLoginTest extends EntityTestCase
     /**
      * @dataProvider dataProviderTestThatSetterAndGettersWorks
      *
-     * @param string $field
-     * @param string $type
-     * @param array  $meta
-     *
      * @throws Throwable
+     *
+     * @testdox Test that getter method for `$field` with `$type` returns expected.
      */
     public function testThatGetterReturnsExpectedValue(string $field, string $type, array $meta): void
     {
@@ -95,47 +121,17 @@ class LogLoginTest extends EntityTestCase
         if (!(array_key_exists('columnName', $meta) || array_key_exists('joinColumns', $meta))) {
             $type = ArrayCollection::class;
 
-            static::assertInstanceOf($type, $logRequest->$getter());
+            static::assertInstanceOf($type, $logRequest->{$getter}());
         }
 
         try {
             if (static::isType($type)) {
                 $method = 'assertIs' . ucfirst($type);
 
-                static::$method($logRequest->$getter());
+                static::$method($logRequest->{$getter}());
             }
-        } /** @noinspection BadExceptionsProcessingInspection */ catch (Exception $error) {
-            static::assertInstanceOf($type, $logRequest->$getter());
+        } catch (Throwable $error) {
+            static::assertInstanceOf($type, $logRequest->{$getter}(), $error->getMessage());
         }
-    }
-
-    /** @noinspection PhpMissingParentCallCommonInspection */
-    /**
-     * @throws Throwable
-     */
-    protected function setUp(): void
-    {
-        gc_enable();
-
-        static::bootKernel();
-
-        // Store container and entity manager
-        $this->testContainer = static::$kernel->getContainer();
-
-        /** @noinspection MissingService */
-        $this->entityManager = $this->testContainer->get('doctrine.orm.default_entity_manager');
-
-        $request = Request::create('');
-
-        // Parse user agent data with device detector
-        $deviceDetector = new DeviceDetector($request->headers->get('User-Agent'));
-        $deviceDetector->parse();
-
-        // Create new entity object
-        $this->entity = new $this->entityName('', $request, $deviceDetector, new User());
-
-        $this->repository = $this->entityManager->getRepository($this->entityName);
-
-        unset($deviceDetector);
     }
 }

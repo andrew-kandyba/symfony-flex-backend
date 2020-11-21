@@ -23,69 +23,48 @@ use function get_class;
  * Class SecurityUserFactory
  *
  * @package App\Security\Provider
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class SecurityUserFactory implements UserProviderInterface
 {
-    /**
-     * @var UserRepository
-     */
-    private $userRepository;
-
-    /**
-     * @var RolesService
-     */
-    private $rolesService;
+    private UserRepository $userRepository;
+    private RolesService $rolesService;
+    private string $uuidV1Regex;
 
     /**
      * SecurityUserFactory constructor.
-     *
-     * @param UserRepository $userRepository
-     * @param RolesService   $rolesService
      */
-    public function __construct(UserRepository $userRepository, RolesService $rolesService)
+    public function __construct(UserRepository $userRepository, RolesService $rolesService, string $uuidV1Regex)
     {
         $this->userRepository = $userRepository;
         $this->rolesService = $rolesService;
+        $this->uuidV1Regex = $uuidV1Regex;
     }
 
     /**
-     * Loads the user for the given username.
-     *
-     * This method must return null if the user is not found.
-     *
-     * @param string $username The username
-     *
-     * @return UserInterface
+     * {@inheritdoc}
      *
      * @throws Throwable
      */
-    public function loadUserByUsername($username): UserInterface
+    public function loadUserByUsername(string $username): UserInterface
     {
-        $user = $this->userRepository->loadUserByUsername($username);
+        $user = $this->userRepository->loadUserByUsername(
+            $username,
+            (bool)preg_match('#' . $this->uuidV1Regex . '#', $username)
+        );
 
         if (!($user instanceof User)) {
             throw new UsernameNotFoundException(sprintf('User not found for UUID: "%s".', $username));
         }
 
-        return (new SecurityUser($user))->setRoles($this->rolesService->getInheritedRoles($user->getRoles()));
+        return new SecurityUser($user, $this->rolesService->getInheritedRoles($user->getRoles()));
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function supportsClass($class): bool
+    public function supportsClass(string $class): bool
     {
         return $class === SecurityUser::class;
     }
 
-    /**
-     * @inheritDoc
-     *
-     * @return SecurityUser
-     *
-     * @throws Throwable
-     */
     public function refreshUser(UserInterface $user): SecurityUser
     {
         if (!($user instanceof SecurityUser)) {
@@ -98,7 +77,6 @@ class SecurityUserFactory implements UserProviderInterface
             throw new UsernameNotFoundException(sprintf('User not found for UUID: "%s".', $user->getUsername()));
         }
 
-        return (new SecurityUser($userEntity))
-            ->setRoles($this->rolesService->getInheritedRoles($userEntity->getRoles()));
+        return new SecurityUser($userEntity, $this->rolesService->getInheritedRoles($userEntity->getRoles()));
     }
 }

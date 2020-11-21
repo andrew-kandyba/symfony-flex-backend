@@ -16,7 +16,7 @@ use Throwable;
  * Class LogRequestRepositoryTest
  *
  * @package App\Tests\Functional\Repository
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class LogRequestRepositoryTest extends KernelTestCase
 {
@@ -25,14 +25,6 @@ class LogRequestRepositoryTest extends KernelTestCase
      */
     private $repository;
 
-    /**
-     * @throws Throwable
-     */
-    public function testThatCleanHistoryReturnsExpected(): void
-    {
-        static::assertSame(0, $this->repository->cleanHistory());
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -40,5 +32,13 @@ class LogRequestRepositoryTest extends KernelTestCase
         static::bootKernel();
 
         $this->repository = static::$container->get(LogRequestRepository::class);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function testThatCleanHistoryReturnsExpected(): void
+    {
+        static::assertSame(0, $this->repository->cleanHistory());
     }
 }

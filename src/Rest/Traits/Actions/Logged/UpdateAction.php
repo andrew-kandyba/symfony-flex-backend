@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Rest\Traits\Actions\Logged;
 
-use App\Annotation\RestApiDoc;
 use App\DTO\RestDtoInterface;
 use App\Rest\Traits\Methods\UpdateMethod;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
@@ -25,31 +24,22 @@ use Throwable;
  * @see \App\Rest\Traits\Methods\UpdateMethod for detailed documents.
  *
  * @package App\Rest\Traits\Actions\Logged
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 trait UpdateAction
 {
-    // Traits
     use UpdateMethod;
 
     /**
      * @Route(
      *      "/{id}",
      *      requirements={
-     *          "id" = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+     *          "id" = "%app.uuid_v1_regex%",
      *      },
      *      methods={"PUT"},
      *  )
      *
      * @Security("is_granted('ROLE_LOGGED')")
-     *
-     * @RestApiDoc()
-     *
-     * @param Request          $request
-     * @param RestDtoInterface $restDto
-     * @param string           $id
-     *
-     * @return Response
      *
      * @throws Throwable
      */

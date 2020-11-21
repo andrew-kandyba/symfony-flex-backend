@@ -8,12 +8,14 @@ declare(strict_types = 1);
 
 namespace App\Entity;
 
+use App\Entity\Interfaces\EntityInterface;
 use App\Entity\Traits\Blameable;
 use App\Entity\Traits\Timestampable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Throwable;
 
 /**
  * Class Role
@@ -21,41 +23,42 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * @ORM\Table(
  *      name="role",
  *      uniqueConstraints={
- *          @ORM\UniqueConstraint(name="uq_role", columns={"role"}),
+ * @ORM\UniqueConstraint(name="uq_role", columns={"role"}),
  *      },
  *  )
  * @ORM\Entity()
  *
  * @package App\Entity
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class Role implements EntityInterface
 {
-    // Traits
     use Blameable;
     use Timestampable;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "Role",
      *      "Role.role",
+     *
      *      "UserGroup.role",
+     *
+     *      "set.UserProfile",
+     *      "set.UserProfileGroups",
+     *      "set.UserGroupBasic",
      *  })
      *
      * @ORM\Column(
      *      name="role",
      *      type="string",
-     *      nullable=false
+     *      unique=true,
+     *      nullable=false,
      *  )
      * @ORM\Id()
      */
-    private $id;
+    private string $id;
 
     /**
-     * @var string
-     *
      * @Groups({
      *      "Role",
      *      "Role.description",
@@ -67,12 +70,12 @@ class Role implements EntityInterface
      *      nullable=false
      *  )
      */
-    private $description = '';
+    private string $description = '';
 
     /**
      * User groups that belongs to this role.
      *
-     * @var Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * @var Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      *
      * @Groups({
      *      "Role.userGroups",
@@ -83,42 +86,31 @@ class Role implements EntityInterface
      *      mappedBy="role",
      *  )
      */
-    private $userGroups;
+    private Collection $userGroups;
 
     /**
      * Constructor.
      *
-     * @param string|null $role The role name
+     * @param string $role The role name
+     *
+     * @throws Throwable
      */
-    public function __construct(?string $role = null)
+    public function __construct(string $role)
     {
-        $role = $role ?? '';
-
         $this->id = $role;
         $this->userGroups = new ArrayCollection();
     }
 
-    /**
-     * @return string
-     */
     public function getId(): string
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
     public function getDescription(): string
     {
         return $this->description;
     }
 
-    /**
-     * @param string $description
-     *
-     * @return Role
-     */
     public function setDescription(string $description): self
     {
         $this->description = $description;
@@ -127,7 +119,7 @@ class Role implements EntityInterface
     }
 
     /**
-     * @return Collection|ArrayCollection|Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
+     * @return Collection<int, UserGroup>|ArrayCollection<int, UserGroup>
      */
     public function getUserGroups(): Collection
     {

@@ -8,7 +8,6 @@ declare(strict_types = 1);
 
 namespace App\Serializer\Normalizer;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -18,36 +17,28 @@ use function is_object;
  * Class CollectionNormalizer
  *
  * @package App\Serializer
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
  */
 class CollectionNormalizer implements NormalizerInterface
 {
-    /**
-     * @var ObjectNormalizer
-     */
-    private $normalizer;
+    private ObjectNormalizer $normalizer;
 
     /**
      * CollectionNormalizer constructor.
-     *
-     * @param ObjectNormalizer $normalizer
      */
     public function __construct(ObjectNormalizer $normalizer)
     {
         $this->normalizer = $normalizer;
     }
 
-    /** @noinspection ParameterDefaultValueIsNotNullInspection */
     /**
-     * @inheritdoc
-     *
-     * @param Collection|ArrayCollection|mixed $collection
+     * {@inheritdoc}
      */
-    public function normalize($collection, $format = null, array $context = [])
+    public function normalize($object, ?string $format = null, array $context = []): array
     {
         $output = [];
 
-        foreach ($collection as $value) {
+        foreach ($object as $value) {
             $output[] = $this->normalizer->normalize($value, $format, $context);
         }
 
@@ -55,9 +46,9 @@ class CollectionNormalizer implements NormalizerInterface
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function supportsNormalization($data, $format = null): bool
+    public function supportsNormalization($data, ?string $format = null): bool
     {
         return $format === 'json' && is_object($data) && $data instanceof Collection && is_object($data->first());
     }

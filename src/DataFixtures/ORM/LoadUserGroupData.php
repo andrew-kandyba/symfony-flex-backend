@@ -10,12 +10,14 @@ namespace App\DataFixtures\ORM;
 
 use App\Entity\Role;
 use App\Entity\UserGroup;
-use App\Security\RolesServiceInterface;
+use App\Rest\UuidHelper;
+use App\Security\Interfaces\RolesServiceInterface;
+use App\Utils\Tests\PhpUnitUtil;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\OrderedFixtureInterface;
-use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Throwable;
 use function array_map;
 
@@ -23,41 +25,30 @@ use function array_map;
  * Class LoadUserGroupData
  *
  * @package App\DataFixtures\ORM
- * @author  TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ * @author TLe, Tarmo Leppänen <tarmo.leppanen@protacon.com>
+ *
+ * @psalm-suppress MissingConstructor
  */
 final class LoadUserGroupData extends Fixture implements OrderedFixtureInterface, ContainerAwareInterface
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    use ContainerAwareTrait;
 
     /**
-     * @var ObjectManager
+     * @var array<string, string>
      */
-    private $manager;
+    public static array $uuids = [
+        'Role-logged' => 'f94629ce-c79b-11ea-87d0-0242ac130003',
+        'Role-api' => 'fe4df1e0-c79b-11ea-87d0-0242ac130003',
+        'Role-user' => '042650e4-c79c-11ea-87d0-0242ac130003',
+        'Role-admin' => '08c19fa0-c79c-11ea-87d0-0242ac130003',
+        'Role-root' => '0ef6ce9a-c79c-11ea-87d0-0242ac130003',
+    ];
 
-    /**
-     * @var RolesServiceInterface
-     */
-    private $roles;
-
-    /**
-     * Setter for container.
-     *
-     * @param ContainerInterface|null $container
-     */
-    public function setContainer(?ContainerInterface $container = null): void
-    {
-        if ($container !== null) {
-            $this->container = $container;
-        }
-    }
+    private ObjectManager $manager;
+    private RolesServiceInterface $roles;
 
     /**
      * Load data fixtures with the passed EntityManager
-     *
-     * @param ObjectManager $manager
      *
      * @throws Throwable
      */
@@ -69,12 +60,8 @@ final class LoadUserGroupData extends Fixture implements OrderedFixtureInterface
         $this->roles = $rolesService;
         $this->manager = $manager;
 
-        $iterator = function (string $role): void {
-            $this->createUserGroup($role);
-        };
-
         // Create entities
-        array_map($iterator, $this->roles->getRoles());
+        array_map(fn (string $role): bool => $this->createUserGroup($role), $this->roles->getRoles());
 
         // Flush database changes
         $this->manager->flush();
@@ -82,8 +69,6 @@ final class LoadUserGroupData extends Fixture implements OrderedFixtureInterface
 
     /**
      * Get the order of this fixture
-     *
-     * @return int
      */
     public function getOrder(): int
     {
@@ -93,11 +78,9 @@ final class LoadUserGroupData extends Fixture implements OrderedFixtureInterface
     /**
      * Method to create UserGroup entity for specified role.
      *
-     * @param string $role
-     *
      * @throws Throwable
      */
-    private function createUserGroup(string $role): void
+    private function createUserGroup(string $role): bool
     {
         /** @var Role $roleReference */
         $roleReference = $this->getReference('Role-' . $this->roles->getShort($role));
@@ -107,10 +90,18 @@ final class LoadUserGroupData extends Fixture implements OrderedFixtureInterface
         $entity->setRole($roleReference);
         $entity->setName($this->roles->getRoleLabel($role));
 
+        PhpUnitUtil::setProperty(
+            'id',
+            UuidHelper::fromString(self::$uuids['Role-' . $this->roles->getShort($role)]),
+            $entity
+        );
+
         // Persist entity
         $this->manager->persist($entity);
 
         // Create reference for later usage
         $this->addReference('UserGroup-' . $this->roles->getShort($role), $entity);
+
+        return true;
     }
 }
